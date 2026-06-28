@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kubefall"
+version = "0.1.0"
+description = "A roguelike for mastering kubectl, built on the rootfall engine."
+readme = "README.md"
+requires-python = ">=3.9"
+# PyYAML is the only third-party dependency. Everything else is standard library.
+# kubectl is an optional runtime tool used by dry-run-verified solve battles.
+dependencies = ["PyYAML>=6.0"]
+
+[project.scripts]
+kubefall = "kubefall.engine:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

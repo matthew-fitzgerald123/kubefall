@@ -1,0 +1,103 @@
+# Zone 4: Config.
+#
+# Configuration lives outside the image so the same image runs anywhere. The
+# Archivist teaches configmaps versus secrets, the from-literal versus from-file
+# sources, and how config reaches a pod as environment variables or a mounted
+# volume. The boss is a dry-run-verified solve that creates a configmap from a
+# literal, which kubectl validates fully offline.
+
+id: zone04_config
+name: Config
+path: cluster/config
+theme: Config outside the image. configmap, secret, from-literal, from-file, env, get.
+commands:
+  - kubectl create configmap
+  - kubectl create secret
+  - "--from-literal"
+  - "--from-file"
+  - env injection
+  - kubectl get cm
+  - kubectl get secret
+
+encounters:
+  - type: villager
+    name: The Archivist
+    lore: >-
+      A keeper of values who never bakes config into an image. "Two stores," he
+      says. "A configmap holds plain, non-sensitive settings. A secret holds
+      sensitive values and is base64 encoded and handled more carefully, though it
+      is not encrypted by default. Both are filled the same two ways:
+      --from-literal sets a key and value inline, --from-file loads a whole file.
+      Config reaches a pod two ways: injected as environment variables, or mounted
+      as a volume of files."
+    teaches:
+      - command: "kubectl create configmap"
+        desc: "create a configmap of non-sensitive settings"
+      - command: "kubectl create secret"
+        desc: "create a secret for sensitive values, base64 encoded"
+      - command: "--from-literal"
+        desc: "set a key=value pair inline"
+      - command: "--from-file"
+        desc: "load configuration from a file"
+      - command: "kubectl get cm"
+        desc: "list configmaps (cm is short for configmaps)"
+      - command: "kubectl get secret"
+        desc: "list secrets"
+      - command: "env injection"
+        desc: "config reaches a pod as env vars or a mounted volume"
+    quiz:
+      prompt: "Which object holds sensitive values and is base64 encoded, a configmap or a secret?"
+      answers:
+        - "secret"
+        - "a secret"
+        - "secrets"
+
+  - type: recall
+    prompt: "Create a configmap named web-config with key COLOR set to blue, inline."
+    answers:
+      - "kubectl create configmap web-config --from-literal=COLOR=blue"
+    time_limit: 11
+
+  - type: recall
+    prompt: "Create a configmap named web-config from the file app.properties."
+    answers:
+      - "kubectl create configmap web-config --from-file=app.properties"
+      - "kubectl create configmap web-config --from-file app.properties"
+    time_limit: 11
+
+  - type: recall
+    prompt: "Create a generic secret named web-secret with key TOKEN set to abc123, inline."
+    answers:
+      - "kubectl create secret generic web-secret --from-literal=TOKEN=abc123"
+    time_limit: 12
+
+  - type: recall
+    prompt: "List all configmaps in the current namespace."
+    answers:
+      - "kubectl get cm"
+      - "kubectl get configmaps"
+    time_limit: 7
+
+  - type: recall
+    prompt: "List all secrets in the current namespace."
+    answers:
+      - "kubectl get secret"
+      - "kubectl get secrets"
+    time_limit: 7
+
+  - type: recall
+    prompt: "Show the configmap web-config as YAML."
+    answers:
+      - "kubectl get configmap web-config -o yaml"
+      - "kubectl get cm web-config -o yaml"
+    time_limit: 9
+
+  - type: solve
+    name: First Config
+    verify: dry-run
+    objective: >-
+      Create a configmap named web-config with the key COLOR set to blue, from a
+      literal. This solve is dry-run verified end to end: kubectl validates it
+      with no cluster and shows the configmap manifest it generates.
+    hint: "kubectl create configmap web-config --from-literal=COLOR=blue"
+    key: "kubectl create configmap literal"

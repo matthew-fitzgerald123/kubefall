@@ -1,0 +1,136 @@
+# Zone 6: Cluster Triage.
+#
+# The boss zone, the kubectl answer to rootfall's Frontier. This is the real
+# interview: "a pod is CrashLoopBackOff, walk me through it." It combines every
+# verb from zones 1 through 5 into one ordered diagnostic chain. The timers are
+# the tightest in the game and the boss is an honor-system reasoning chain, not a
+# dry-run, because the win condition is stating the correct ordered sequence, not
+# creating anything.
+#
+# The captures the scenario references live under world/captures, written by
+# world.py. There is no live cluster anywhere.
+
+id: zone06_cluster_triage
+name: Cluster Triage
+path: cluster/triage
+theme: The full diagnostic chain. get pods, describe, logs, logs --previous, config, image.
+commands:
+  - kubectl get pods
+  - kubectl describe pod
+  - kubectl logs
+  - kubectl logs --previous
+  - kubectl get events
+  - kubectl get configmap
+  - kubectl describe deployment
+
+encounters:
+  - type: villager
+    name: The Chief
+    lore: >-
+      The on-call lead who has seen every outage. "When a pod is
+      CrashLoopBackOff, you do not poke at random," she says. "There is an order.
+      First get pods for the state and the restart count. Then describe pod to
+      read the events, which separates a scheduling or image-pull problem from an
+      application crash. Then logs for the app error, and if it has restarted,
+      logs --previous, because the live logs are empty. If the logs point at
+      missing settings, check the configmap and secret and the image tag. State
+      it in that order and you have passed the interview."
+    teaches:
+      - command: "kubectl get pods"
+        desc: "step 1: pod state and restart count"
+      - command: "kubectl describe pod"
+        desc: "step 2: the events, scheduling versus app crash"
+      - command: "kubectl logs"
+        desc: "step 3: the application's own error output"
+      - command: "kubectl logs --previous"
+        desc: "step 4: the crashed instance after a restart"
+      - command: "kubectl get events"
+        desc: "the cluster-wide event trail for corroboration"
+      - command: "kubectl get configmap"
+        desc: "step 5: the config the app reads, often the root cause"
+      - command: "kubectl describe deployment"
+        desc: "check the image tag and rollout the pod came from"
+    quiz:
+      prompt: "In the triage chain, which command comes first, before describe and before logs? Two words."
+      answers:
+        - "get pods"
+        - "kubectl get pods"
+        - "kubectl get po"
+        - "get po"
+
+  - type: recall
+    prompt: "Step 1. Get the state and restart count of all pods."
+    answers:
+      - "kubectl get pods"
+    time_limit: 6
+
+  - type: recall
+    prompt: "Step 2. Read the events of the crashing pod named web."
+    answers:
+      - "kubectl describe pod web"
+    time_limit: 6
+
+  - type: recall
+    prompt: "Step 3. Read the application logs of the pod named web."
+    answers:
+      - "kubectl logs web"
+    time_limit: 6
+
+  - type: recall
+    prompt: "Step 4. The pod restarted, so read the crashed instance's logs. Pod is web."
+    answers:
+      - "kubectl logs web --previous"
+      - "kubectl logs --previous web"
+      - "kubectl logs -p web"
+      - "kubectl logs web -p"
+    time_limit: 7
+
+  - type: recall
+    prompt: "Step 5. The logs blame missing config. List the configmaps to check."
+    answers:
+      - "kubectl get cm"
+      - "kubectl get configmaps"
+    time_limit: 6
+
+  - type: recall
+    prompt: "Check the image tag and rollout history of deployment web."
+    answers:
+      - "kubectl describe deployment web"
+      - "kubectl describe deploy web"
+    time_limit: 7
+
+  - type: recall
+    prompt: |
+      The previous container's logs end with:
+
+        FATAL required environment variable DATABASE_URL is not set
+        config came from configmap web-config, key DATABASE_URL missing
+
+      Which object do you fix? Two words.
+    answers:
+      - "the configmap"
+      - "configmap web-config"
+      - "web-config"
+      - "configmap"
+    time_limit: 9
+
+  - type: recall
+    prompt: |
+      Name the triage order as four verbs in sequence: state, then events, then
+      app error, then the crashed instance. Use the verbs only, space separated.
+    answers:
+      - "get describe logs logs"
+      - "get pods describe pod logs logs --previous"
+    time_limit: 12
+
+  - type: solve
+    name: The Interview
+    objective: >-
+      The pod web is CrashLoopBackOff. Walk the full triage out loud, in order:
+      get pods for the state, describe pod for the events, logs for the app error,
+      logs --previous because it restarted, then check the configmap and the image
+      tag. This is honor-system: state the ordered chain, then confirm. The win
+      condition is the correct order, not a created object.
+    hint: "get pods -> describe pod web -> logs web -> logs web --previous -> get configmap / describe deployment web"
+    fixture: "captures/get_pods_crashloop.txt"
+    key: "triage chain"

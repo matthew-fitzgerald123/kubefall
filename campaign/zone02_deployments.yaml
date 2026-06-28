@@ -1,0 +1,103 @@
+# Zone 2: Deployments and ReplicaSets.
+#
+# One layer up from the pod. The player learns the controller chain: a deployment
+# owns replicasets, a replicaset owns pods. The Operator teaches create, scale,
+# the rollout pair (status and undo), set image, and get rs. The boss is a
+# dry-run-verified solve that creates a deployment with an explicit replica count,
+# which kubectl can validate fully offline.
+
+id: zone02_deployments
+name: Deployments
+path: cluster/deployments
+theme: Controllers over pods. create deployment, scale, rollout, set image, get rs.
+commands:
+  - kubectl create deployment
+  - kubectl scale
+  - kubectl rollout status
+  - kubectl rollout undo
+  - kubectl get rs
+  - kubectl set image
+  - "--replicas"
+
+encounters:
+  - type: villager
+    name: The Operator
+    lore: >-
+      A steady hand at the control plane. "A deployment does not run your pods
+      directly," he says. "It manages a replicaset, and the replicaset manages the
+      pods. You declare how many replicas you want and the controller keeps that
+      many alive. scale changes the count. set image triggers a rolling update,
+      and a new replicaset is created beside the old one. rollout status watches
+      that update land, and rollout undo rolls it back if it goes wrong."
+    teaches:
+      - command: "kubectl create deployment"
+        desc: "create a deployment that manages a replicaset of pods"
+      - command: "kubectl scale --replicas"
+        desc: "change the desired replica count of a deployment"
+      - command: "kubectl rollout status"
+        desc: "watch a rolling update until it completes"
+      - command: "kubectl rollout undo"
+        desc: "roll a deployment back to its previous revision"
+      - command: "kubectl get rs"
+        desc: "list replicasets, the layer between deployment and pods"
+      - command: "kubectl set image"
+        desc: "update a container image and trigger a rolling update"
+      - command: "--replicas"
+        desc: "the flag that sets how many pod copies to run"
+    quiz:
+      prompt: "A deployment manages a replicaset, and a replicaset manages what? One word."
+      answers:
+        - "pods"
+        - "pod"
+        - "the pods"
+
+  - type: recall
+    prompt: "Create a deployment named web from the nginx image."
+    answers:
+      - "kubectl create deployment web --image=nginx"
+      - "kubectl create deployment web --image nginx"
+    time_limit: 9
+
+  - type: recall
+    prompt: "Scale the deployment named web to 3 replicas."
+    answers:
+      - "kubectl scale deployment web --replicas=3"
+      - "kubectl scale deployment web --replicas 3"
+    time_limit: 9
+
+  - type: recall
+    prompt: "Watch the rolling update of deployment web until it lands."
+    answers:
+      - "kubectl rollout status deployment web"
+      - "kubectl rollout status deployment/web"
+    time_limit: 8
+
+  - type: recall
+    prompt: "Roll the deployment web back to its previous revision."
+    answers:
+      - "kubectl rollout undo deployment web"
+      - "kubectl rollout undo deployment/web"
+    time_limit: 8
+
+  - type: recall
+    prompt: "List the replicasets in the current namespace."
+    answers:
+      - "kubectl get rs"
+    time_limit: 7
+
+  - type: recall
+    prompt: "Update the container web in deployment web to image nginx:1.25."
+    answers:
+      - "kubectl set image deployment/web web=nginx:1.25"
+      - "kubectl set image deployment web web=nginx:1.25"
+    time_limit: 10
+
+  - type: solve
+    name: Three Replicas
+    verify: dry-run
+    objective: >-
+      Create a deployment named web from the nginx image with 3 replicas, in one
+      command. This solve is dry-run verified end to end: kubectl validates it
+      with no cluster and shows you the generated deployment manifest.
+    hint: "kubectl create deployment web --image=nginx --replicas=3"
+    key: "kubectl create deployment replicas"

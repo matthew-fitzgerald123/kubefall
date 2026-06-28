@@ -1,0 +1,146 @@
+# Zone 5: Debugging.
+#
+# The read-verb toolkit. Everything here observes; nothing here creates, so the
+# boss is honor-system, not dry-run: you never dry-run a kubectl logs. The Medic
+# teaches logs and its two critical flags (-f to follow, --previous for a crashed
+# container), exec for a shell, describe and get events for the event trail, and
+# top for live resource use. Several recalls are output-reading: they show a real
+# capture and ask what it means or what to check next.
+#
+# The captures shown inline also live under world/captures, written by world.py.
+
+id: zone05_debugging
+name: Debugging
+path: cluster/debug
+theme: The read-verb toolkit. logs, logs -f, logs --previous, exec -it, events, top.
+commands:
+  - kubectl logs
+  - kubectl logs -f
+  - kubectl logs --previous
+  - kubectl exec -it
+  - kubectl describe
+  - kubectl get events
+  - kubectl top pod
+
+encounters:
+  - type: villager
+    name: The Medic
+    lore: >-
+      A triage nurse for sick workloads. "When a pod misbehaves you read, you do
+      not guess," she says. "logs shows what the app printed. logs -f follows it
+      live. logs --previous is the one people forget: when a container has crashed
+      and restarted, the current logs are empty, and the evidence is in the
+      previous container. describe and get events show what the cluster did to the
+      pod, scheduling, pulls, restarts. exec -it drops you into a shell inside the
+      container. top shows live CPU and memory."
+    teaches:
+      - command: "kubectl logs"
+        desc: "print a container's stdout and stderr"
+      - command: "kubectl logs -f"
+        desc: "follow the logs live as new lines arrive"
+      - command: "kubectl logs --previous"
+        desc: "logs from the previous, crashed container instance"
+      - command: "kubectl exec -it"
+        desc: "open an interactive shell inside a container"
+      - command: "kubectl describe"
+        desc: "full detail and the event trail for an object"
+      - command: "kubectl get events"
+        desc: "the cluster's recent events, newest activity included"
+      - command: "kubectl top pod"
+        desc: "live CPU and memory use per pod"
+    quiz:
+      prompt: "A container has crashed and restarted, so its current logs are empty. Which flag shows the crashed instance's logs?"
+      answers:
+        - "--previous"
+        - "-p"
+        - "logs --previous"
+        - "kubectl logs --previous"
+
+  - type: recall
+    prompt: "Print the logs of the pod named web."
+    answers:
+      - "kubectl logs web"
+    time_limit: 7
+
+  - type: recall
+    prompt: "Follow the logs of the pod named web live."
+    answers:
+      - "kubectl logs -f web"
+      - "kubectl logs web -f"
+    time_limit: 8
+
+  - type: recall
+    prompt: "Show the logs from the previous, crashed instance of the pod named web."
+    answers:
+      - "kubectl logs web --previous"
+      - "kubectl logs --previous web"
+      - "kubectl logs -p web"
+      - "kubectl logs web -p"
+    time_limit: 9
+
+  - type: recall
+    prompt: "Open an interactive shell (/bin/sh) inside the pod named web."
+    answers:
+      - "kubectl exec -it web -- /bin/sh"
+      - "kubectl exec -it web -- sh"
+    time_limit: 11
+
+  - type: recall
+    prompt: "Show the recent cluster events."
+    answers:
+      - "kubectl get events"
+    time_limit: 7
+
+  - type: recall
+    prompt: "Show live CPU and memory use for every pod."
+    answers:
+      - "kubectl top pod"
+      - "kubectl top pods"
+    time_limit: 8
+
+  - type: recall
+    prompt: |
+      You run kubectl get pods and see:
+
+        NAME                  READY   STATUS             RESTARTS   AGE
+        web-7c9f8b6d4-7m2pn   0/1     CrashLoopBackOff   8          12m
+
+      What status is that pod in? One word.
+    answers:
+      - "CrashLoopBackOff"
+    time_limit: 12
+
+  - type: recall
+    prompt: |
+      That same pod is in CrashLoopBackOff with 8 restarts. Its current logs are
+      empty because the container keeps dying and restarting. What is the single
+      best command to see why it died last time? Pod is named web.
+    answers:
+      - "kubectl logs web --previous"
+      - "kubectl logs --previous web"
+      - "kubectl logs -p web"
+      - "kubectl logs web -p"
+    time_limit: 12
+
+  - type: recall
+    prompt: |
+      A describe of the pod ends with:
+
+        Warning  BackOff  2m (x44 over 12m)  kubelet  Back-off restarting failed container
+
+      Which kubectl verb surfaced that event line for a single object?
+    answers:
+      - "describe"
+      - "kubectl describe"
+    time_limit: 10
+
+  - type: solve
+    name: Reading the Symptoms
+    objective: >-
+      A pod named web is in CrashLoopBackOff. State the read-only investigation:
+      get the pod state, describe the pod for its events, read the logs, and use
+      logs --previous because the container has restarted. This is honor-system,
+      since these are read verbs and must never be dry-run validated.
+    hint: "kubectl get pods ; kubectl describe pod web ; kubectl logs web --previous"
+    fixture: "captures/describe_web_events.txt"
+    key: "debug read-verbs"

@@ -1,0 +1,111 @@
+# Zone 3: Services and Networking.
+#
+# Pods are ephemeral and their IPs change. A service is the stable front door. The
+# Routist teaches expose, the three service types, the port-versus-target-port
+# distinction, and port-forward for local access. The boss is a dry-run-verified
+# solve that exposes a deployment as a service.
+#
+# kubectl expose does API discovery even under --dry-run=client, so with no
+# cluster reachable the boss degrades to honor-system self-report. With a cluster
+# configured it verifies for real.
+
+id: zone03_services
+name: Services
+path: cluster/services
+theme: Stable networking for ephemeral pods. expose, get svc, types, ports, port-forward.
+commands:
+  - kubectl expose
+  - kubectl get svc
+  - "--type ClusterIP"
+  - "--type NodePort"
+  - "--type LoadBalancer"
+  - "--port"
+  - "--target-port"
+  - kubectl port-forward
+
+encounters:
+  - type: villager
+    name: The Routist
+    lore: >-
+      A wiremaster who never loses a packet. "Pods come and go and their IPs go
+      with them," she says. "A service is a stable name and address in front of a
+      set of pods. There are three common types. ClusterIP is internal only and is
+      the default. NodePort opens a port on every node. LoadBalancer asks the
+      cloud for an external address. Mind the ports: --port is the port the
+      service listens on, --target-port is the port on the pod it forwards to. To
+      reach a service from your laptop without exposing it, port-forward tunnels a
+      local port straight to it."
+    teaches:
+      - command: "kubectl expose"
+        desc: "create a service in front of a deployment or pod"
+      - command: "kubectl get svc"
+        desc: "list services and their cluster IPs and ports"
+      - command: "--type=ClusterIP"
+        desc: "internal-only service, the default type"
+      - command: "--type=NodePort"
+        desc: "open a fixed port on every node"
+      - command: "--type=LoadBalancer"
+        desc: "request an external address from the cloud"
+      - command: "--port"
+        desc: "the port the service itself listens on"
+      - command: "--target-port"
+        desc: "the port on the pod that traffic is forwarded to"
+      - command: "kubectl port-forward"
+        desc: "tunnel a local port to a service or pod"
+    quiz:
+      prompt: "Which service type is internal-only and is the default: ClusterIP, NodePort, or LoadBalancer?"
+      answers:
+        - "ClusterIP"
+        - "clusterip"
+
+  - type: recall
+    prompt: "List all services in the current namespace."
+    answers:
+      - "kubectl get svc"
+    time_limit: 7
+
+  - type: recall
+    prompt: "Expose deployment web on port 80, forwarding to pod port 8080."
+    answers:
+      - "kubectl expose deployment web --port=80 --target-port=8080"
+      - "kubectl expose deployment web --port 80 --target-port 8080"
+    time_limit: 11
+
+  - type: recall
+    prompt: "Expose deployment web on port 80 as a NodePort service."
+    answers:
+      - "kubectl expose deployment web --port=80 --type=NodePort"
+      - "kubectl expose deployment web --port 80 --type NodePort"
+    time_limit: 11
+
+  - type: recall
+    prompt: "Expose deployment web on port 80 as a LoadBalancer service."
+    answers:
+      - "kubectl expose deployment web --port=80 --type=LoadBalancer"
+      - "kubectl expose deployment web --port 80 --type LoadBalancer"
+    time_limit: 11
+
+  - type: recall
+    prompt: "Forward local port 8080 to port 80 of the service named web."
+    answers:
+      - "kubectl port-forward service/web 8080:80"
+      - "kubectl port-forward svc/web 8080:80"
+    time_limit: 10
+
+  - type: recall
+    prompt: "Forward local port 8080 to port 80 of the pod named web."
+    answers:
+      - "kubectl port-forward pod/web 8080:80"
+      - "kubectl port-forward web 8080:80"
+    time_limit: 9
+
+  - type: solve
+    name: The Front Door
+    verify: dry-run
+    objective: >-
+      Expose the deployment named web as a service on port 80 forwarding to pod
+      port 8080. This solve is dry-run verified: with a reachable cluster kubectl
+      validates it and shows the service manifest, and with no cluster it falls
+      back to honor-system self-report.
+    hint: "kubectl expose deployment web --port=80 --target-port=8080"
+    key: "kubectl expose service"

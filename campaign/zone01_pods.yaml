@@ -1,0 +1,111 @@
+# Zone 1: Pods.
+#
+# The first descent. The player learns the unit every other object wraps: the
+# pod. The Scheduler teaches run, the get-versus-describe split, and the two
+# selectors that narrow a listing, -n for namespace and -l for label. The boss is
+# a dry-run-verified solve that has the player create a real pod manifest with
+# kubectl run.
+#
+# kubectl run and kubectl expose do API discovery even under --dry-run=client, so
+# with no cluster reachable the boss degrades to honor-system self-report. With a
+# cluster configured it verifies for real.
+
+id: zone01_pods
+name: Pods
+path: cluster/pods
+theme: The smallest deployable unit. run, get, describe, delete, -o wide, -n, -l.
+commands:
+  - kubectl run
+  - kubectl get pods
+  - kubectl describe pod
+  - kubectl delete pod
+  - kubectl get pods -o wide
+  - kubectl get pods -n
+  - kubectl get pods -l
+
+encounters:
+  - type: villager
+    name: The Scheduler
+    lore: >-
+      A calm dispatcher at the cluster gate. "A pod is the smallest thing you can
+      deploy," she says, "one or more containers that share a network and live
+      and die together. get gives you the one-line status of many pods. describe
+      gives you the full story of one, including its events, which is where
+      trouble shows first. Two selectors narrow any listing: -n picks a namespace,
+      and -l filters by label."
+    teaches:
+      - command: "kubectl run"
+        desc: "create and start a single pod from an image"
+      - command: "kubectl get pods"
+        desc: "list pods with a short status line each"
+      - command: "kubectl describe pod"
+        desc: "full detail and events for one pod"
+      - command: "kubectl delete pod"
+        desc: "remove a pod by name"
+      - command: "kubectl get pods -o wide"
+        desc: "wider listing including node and pod IP"
+      - command: "kubectl get pods -n"
+        desc: "list pods in a named namespace"
+      - command: "kubectl get pods -l"
+        desc: "filter pods by a label selector"
+    quiz:
+      prompt: "Which verb shows the full detail and the events of a single pod, get or describe?"
+      answers:
+        - "describe"
+        - "kubectl describe"
+        - "kubectl describe pod"
+
+  - type: recall
+    prompt: "Run a pod named web from the nginx image."
+    answers:
+      - "kubectl run web --image=nginx"
+      - "kubectl run web --image nginx"
+    time_limit: 9
+
+  - type: recall
+    prompt: "List all pods in the current namespace."
+    answers:
+      - "kubectl get pods"
+    time_limit: 7
+
+  - type: recall
+    prompt: "List all pods with the wider output that includes node and pod IP."
+    answers:
+      - "kubectl get pods -o wide"
+    time_limit: 8
+
+  - type: recall
+    prompt: "Show the full detail and events for the pod named web."
+    answers:
+      - "kubectl describe pod web"
+    time_limit: 8
+
+  - type: recall
+    prompt: "Delete the pod named web."
+    answers:
+      - "kubectl delete pod web"
+    time_limit: 7
+
+  - type: recall
+    prompt: "List the pods in the kube-system namespace."
+    answers:
+      - "kubectl get pods -n kube-system"
+    time_limit: 8
+
+  - type: recall
+    prompt: "List only the pods carrying the label app=web."
+    answers:
+      - "kubectl get pods -l app=web"
+      - "kubectl get pods --selector app=web"
+      - "kubectl get pods --selector=app=web"
+    time_limit: 9
+
+  - type: solve
+    name: First Pod
+    verify: dry-run
+    objective: >-
+      Create a pod named web from the nginx image using kubectl run. The command
+      is dry-run verified: kubectl validates it and you will see the pod manifest
+      it generates.
+    hint: "kubectl run web --image=nginx"
+    key: "kubectl run pod"
