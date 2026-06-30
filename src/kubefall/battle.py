@@ -644,7 +644,7 @@ def villager_battle(scheduler, encounter, compressed=False, miss_damage=1,
     for rune in encounter.get("teaches", []):
         scheduler.seed(rune["command"], rune.get("desc", ""), rune["command"])
 
-    return {"correct": True, "damage": min(total_wrong, 3) * miss_damage}
+    return {"correct": True, "damage": 0}
 
 
 # --- small IO helpers ------------------------------------------------------
