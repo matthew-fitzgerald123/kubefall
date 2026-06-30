@@ -345,10 +345,14 @@ def _solve_dry_run(scheduler, encounter, miss_damage,
 
         verb = _kubectl_verb(command)
         if verb in _READ_VERBS:
-            print("  '{}' is a read verb. --dry-run cannot validate it.".format(verb))
-            return _report_fallback(scheduler, key, miss_damage,
-                                    screen=screen, zone_id=zone_id,
-                                    encounter=encounter, hp=hp, max_hp=max_hp)
+            msg = "  '{}' is a read verb -- this solve needs a creation command.".format(verb)
+            if not screen:
+                print(msg)
+            else:
+                screen.solve_result(zone_id, encounter, hp, max_hp, False, msg)
+            if not penalty_dealt:
+                penalty_dealt = True
+            continue
 
         status, output = _run_dry_run(command)
 
@@ -366,23 +370,30 @@ def _solve_dry_run(scheduler, encounter, miss_damage,
                 screen.solve_result(zone_id, encounter, hp, max_hp, True, output)
             return {"correct": True, "damage": miss_damage if penalty_dealt else 0}
 
-        if status == "unverifiable":
-            print("  This command needs a reachable cluster to verify.")
-            print("  Falling back to honor-system.")
-            return _report_fallback(scheduler, key, miss_damage,
-                                    screen=screen, zone_id=zone_id,
-                                    encounter=encounter, hp=hp, max_hp=max_hp)
-
-        # status == "fail": show error, penalise once, then retry
+        # Both "fail" and "unverifiable" stay in the loop -- never kick out to honor system.
+        # "unverifiable" means kubectl needs a cluster; the player should try a different
+        # command form (e.g. kubectl create instead of kubectl run on older kubectl).
         if not penalty_dealt:
             penalty_dealt = True
         scheduler.record(key, False, 0.0, 0)
-        if screen:
-            screen.solve_result(zone_id, encounter, hp, max_hp, False, output)
+        if status == "unverifiable":
+            err_msg = (
+                "  kubectl needs a live cluster to validate this command.\n"
+                "  Try a creation command that works offline, e.g.:\n"
+                "    kubectl create deployment <name> --image=<image>\n"
+                "    kubectl create namespace <name>"
+            )
+            if screen:
+                screen.solve_result(zone_id, encounter, hp, max_hp, False, err_msg)
+            else:
+                print(err_msg)
         else:
-            print("  kubectl rejected it:")
-            print(_indent(output or "(no error output)"))
-            print("  Try again.")
+            if screen:
+                screen.solve_result(zone_id, encounter, hp, max_hp, False, output)
+            else:
+                print("  kubectl rejected it:")
+                print(_indent(output or "(no error output)"))
+                print("  Try again.")
 
 
 def _kubectl_verb(command):

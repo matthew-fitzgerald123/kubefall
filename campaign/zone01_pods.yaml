@@ -121,11 +121,11 @@ encounters:
     time_limit: 9
 
   - type: solve
-    name: First Pod
+    name: First Deployment
     verify: dry-run
     objective: >-
-      Create a pod named web from the nginx image using kubectl run. The command
-      is dry-run verified: kubectl validates it and you will see the pod manifest
-      it generates.
-    hint: "kubectl run <name> --image=<image>"
-    key: "kubectl run pod"
+      Create a deployment named web from the nginx image. The command is
+      dry-run verified: kubectl validates it offline and shows the manifest it
+      would apply. Use kubectl create deployment.
+    hint: "kubectl create deployment <name> --image=<image>"
+    key: "kubectl create deployment zone01"
