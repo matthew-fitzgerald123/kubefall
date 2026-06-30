@@ -704,6 +704,10 @@ class Screen:
                 for wl in self._wrap(dl, inner_width - 4):
                     lines.append("    " + wl)
 
+        if correct:
+            lines.append("")
+            lines.append(self._colored("  Press Enter to continue...", fg=zone_dim))
+
         self._draw_panel(
             zone_id=zone_id,
             sprite_key="enemy",
@@ -714,7 +718,14 @@ class Screen:
             content_lines=lines,
             await_input=False,
         )
-        time.sleep(1.0)
+
+        if correct:
+            try:
+                input("")
+            except EOFError:
+                pass
+        else:
+            time.sleep(1.0)
 
     # ------------------------------------------------------------------
     # Intro screen
