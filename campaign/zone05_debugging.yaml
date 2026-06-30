@@ -159,11 +159,25 @@ encounters:
 
   - type: solve
     name: Reading the Symptoms
+    verify: sequence
     objective: >-
-      A pod named web is in CrashLoopBackOff. State the read-only investigation:
-      get the pod state, describe the pod for its events, read the logs, and use
-      logs --previous because the container has restarted. This is honor-system,
-      since these are read verbs and must never be dry-run validated.
-    hint: "get pods -> describe pod -> logs -> logs --previous"
-    fixture: "captures/describe_web_events.txt"
+      A pod named web is in CrashLoopBackOff. Type each investigation command
+      in order. No cluster needed -- this drills the diagnostic chain.
     key: "debug read-verbs"
+    steps:
+      - prompt: "Check the state and restart count of all pods."
+        answers:
+          - "kubectl get pods"
+      - prompt: "Read the full events of the pod named web."
+        answers:
+          - "kubectl describe pod web"
+          - "kubectl describe pod/web"
+      - prompt: "Read the current application logs of the pod named web."
+        answers:
+          - "kubectl logs web"
+      - prompt: "The container has restarted and current logs are empty. Read the crashed instance."
+        answers:
+          - "kubectl logs web --previous"
+          - "kubectl logs --previous web"
+          - "kubectl logs -p web"
+          - "kubectl logs web -p"

@@ -40,7 +40,7 @@ class Zone:
 
 _REQUIRED_ZONE_KEYS = ("id", "name", "path", "theme", "commands", "encounters")
 _VALID_TYPES = ("villager", "recall", "solve")
-_VALID_SOLVE_VERIFY = ("dry-run", "honor")
+_VALID_SOLVE_VERIFY = ("dry-run", "honor", "sequence")
 
 # Per encounter type, the keys that must be present.
 _REQUIRED_ENCOUNTER_KEYS = {

@@ -276,12 +276,71 @@ def recall_battle(scheduler, encounter, miss_damage=3,
 
 def solve_battle(scheduler, encounter, world_root="world", miss_damage=5,
                  screen=None, zone_id=None, hp=0, max_hp=20):
-    """Dispatch a solve to the dry-run-verified path or the honor-system path."""
+    """Dispatch to the correct solve path based on encounter verify field."""
+    if encounter.get("verify") == "sequence":
+        return _solve_sequence(scheduler, encounter, miss_damage,
+                               screen=screen, zone_id=zone_id, hp=hp, max_hp=max_hp)
     if encounter.get("verify") == "dry-run":
         return _solve_dry_run(scheduler, encounter, miss_damage,
                               screen=screen, zone_id=zone_id, hp=hp, max_hp=max_hp)
     return _solve_honor(scheduler, encounter, world_root, miss_damage,
                         screen=screen, zone_id=zone_id, hp=hp, max_hp=max_hp)
+
+
+def _solve_sequence(scheduler, encounter, miss_damage,
+                    screen=None, zone_id=None, hp=0, max_hp=20):
+    """Step-by-step solve: player types each command in order, verified by string match."""
+    key = encounter.get("key") or "solve"
+    steps = encounter.get("steps", [])
+    scheduler.ensure(key, encounter.get("objective", ""), encounter.get("hint", ""))
+
+    penalty_dealt = False
+
+    for step_idx, step in enumerate(steps):
+        step_prompt = step["prompt"]
+        accepted = step["answers"]
+
+        while True:
+            if screen:
+                screen.solve_sequence_prompt(zone_id, encounter, step_idx,
+                                             len(steps), step_prompt, hp, max_hp)
+            else:
+                print("\n  -- SOLVE STEP {}/{} --".format(step_idx + 1, len(steps)))
+                print("  " + step_prompt)
+
+            command = _prompt("  > ").strip()
+            if not command:
+                continue
+
+            if matches(command, accepted):
+                if screen:
+                    screen.solve_sequence_step_result(zone_id, encounter, step_idx,
+                                                      len(steps), step_prompt,
+                                                      True, None, hp, max_hp)
+                else:
+                    print("  Correct.")
+                _reset_input()
+                break
+
+            if not penalty_dealt:
+                penalty_dealt = True
+            scheduler.record(key, False, 0.0, 0)
+            if screen:
+                screen.solve_sequence_step_result(zone_id, encounter, step_idx,
+                                                  len(steps), step_prompt,
+                                                  False, accepted[0], hp, max_hp)
+                _drain_stdin()
+            else:
+                print("  Not quite. Expected: {}".format(accepted[0]))
+            _reset_input()
+
+    scheduler.record(key, True, 0.0, 0)
+    if screen:
+        screen.solve_result(zone_id, encounter, hp, max_hp, True,
+                            "  All {} steps complete.".format(len(steps)))
+    else:
+        print("  Investigation complete.")
+    return {"correct": True, "damage": miss_damage if penalty_dealt else 0}
 
 
 def _solve_honor(scheduler, encounter, world_root, miss_damage,

@@ -149,12 +149,35 @@ encounters:
 
   - type: solve
     name: The Interview
+    verify: sequence
     objective: >-
-      The pod web is CrashLoopBackOff. Walk the full triage out loud, in order:
-      get pods for the state, describe pod for the events, logs for the app error,
-      logs --previous because it restarted, then check the configmap and the image
-      tag. This is honor-system: state the ordered chain, then confirm. The win
-      condition is the correct order, not a created object.
-    hint: "get pods -> describe pod -> logs -> logs --previous -> get configmap -> describe deployment"
-    fixture: "captures/get_pods_crashloop.txt"
+      The pod web is CrashLoopBackOff. Type each triage command in order.
+      No cluster needed -- this drills the full diagnostic chain.
     key: "triage chain"
+    steps:
+      - prompt: "Get the state and restart count of all pods."
+        answers:
+          - "kubectl get pods"
+      - prompt: "Read the events of the crashing pod named web."
+        answers:
+          - "kubectl describe pod web"
+          - "kubectl describe pod/web"
+      - prompt: "Read the application logs of the pod named web."
+        answers:
+          - "kubectl logs web"
+      - prompt: "The pod restarted. Read the crashed instance's logs."
+        answers:
+          - "kubectl logs web --previous"
+          - "kubectl logs --previous web"
+          - "kubectl logs -p web"
+          - "kubectl logs web -p"
+      - prompt: "The logs blame a missing configmap key. List the configmaps."
+        answers:
+          - "kubectl get cm"
+          - "kubectl get configmaps"
+      - prompt: "Check the image tag on deployment web."
+        answers:
+          - "kubectl describe deployment web"
+          - "kubectl describe deploy web"
+          - "kubectl rollout history deployment web"
+          - "kubectl rollout history deployment/web"

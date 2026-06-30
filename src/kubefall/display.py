@@ -686,6 +686,86 @@ class Screen:
         )
 
     # ------------------------------------------------------------------
+    # Sequence solve prompt / step result
+    # ------------------------------------------------------------------
+
+    def solve_sequence_prompt(self, zone_id, encounter, step_idx, total_steps,
+                              step_prompt, hp, max_hp):
+        """Draw a single-step panel for a sequence solve. Does not wait."""
+        zone_color, zone_dim = art.get_zone_colors(zone_id)
+        inner_width = max(self._cols() - 22, 20)
+
+        progress = "Step {}/{}".format(step_idx + 1, total_steps)
+        lines = []
+        lines.append(self._colored("-- SOLVE BATTLE --", fg=zone_color, bold=True))
+        lines.append(self._colored(encounter.get("name", "Boss"), fg=zone_dim))
+        lines.append("")
+        lines.append(self._colored(progress, fg=zone_color, bold=True))
+        lines.append("")
+        for wl in self._wrap(step_prompt, inner_width - 2):
+            lines.append("  " + wl)
+        lines.append("")
+        lines.append(self._colored("  Type the command below the panel.", fg=zone_dim))
+
+        self._draw_panel(
+            zone_id=zone_id,
+            sprite_key="enemy",
+            header_left=encounter.get("name", "Boss"),
+            header_right="SOLVE",
+            hp=hp,
+            max_hp=max_hp,
+            content_lines=lines,
+            await_input=False,
+        )
+
+    def solve_sequence_step_result(self, zone_id, encounter, step_idx, total_steps,
+                                   step_prompt, correct, shown_answer, hp, max_hp):
+        """Result for one sequence step. Correct: brief sleep. Wrong: hold for Enter."""
+        zone_color, zone_dim = art.get_zone_colors(zone_id)
+        inner_width = max(self._cols() - 22, 20)
+
+        progress = "Step {}/{}".format(step_idx + 1, total_steps)
+        lines = []
+        lines.append(self._colored("-- SOLVE BATTLE --", fg=zone_color, bold=True))
+        lines.append(self._colored(encounter.get("name", "Boss"), fg=zone_dim))
+        lines.append("")
+        lines.append(self._colored(progress, fg=zone_color, bold=True))
+        lines.append("")
+        for wl in self._wrap(step_prompt, inner_width - 2):
+            lines.append("  " + wl)
+        lines.append("")
+
+        if correct:
+            lines.append(self._colored("  Correct!", fg=46, bold=True))
+            self._draw_panel(
+                zone_id=zone_id,
+                sprite_key="enemy",
+                header_left=encounter.get("name", "Boss"),
+                header_right="SOLVE",
+                hp=hp,
+                max_hp=max_hp,
+                content_lines=lines,
+                await_input=False,
+            )
+            time.sleep(0.8)
+        else:
+            lines.append(self._colored("  Not quite.", fg=196, bold=True))
+            lines.append(self._colored("  Answer: {}".format(shown_answer), fg=zone_dim))
+            lines.append("")
+            lines.append(self._colored("  Press Enter to continue...", fg=zone_dim))
+            self._draw_panel(
+                zone_id=zone_id,
+                sprite_key="enemy",
+                header_left=encounter.get("name", "Boss"),
+                header_right="SOLVE",
+                hp=hp,
+                max_hp=max_hp,
+                content_lines=lines,
+                await_input=False,
+            )
+            _flush_and_dismiss()
+
+    # ------------------------------------------------------------------
     # Solve result
     # ------------------------------------------------------------------
 
