@@ -165,7 +165,7 @@ encounters:
       - prompt: "Read the application logs of the pod named web."
         answers:
           - "kubectl logs web"
-      - prompt: "The pod restarted. Read the crashed instance's logs."
+      - prompt: "Pod web restarted. Read the crashed instance's logs."
         answers:
           - "kubectl logs web --previous"
           - "kubectl logs --previous web"

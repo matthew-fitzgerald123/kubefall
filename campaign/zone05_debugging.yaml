@@ -175,7 +175,7 @@ encounters:
       - prompt: "Read the current application logs of the pod named web."
         answers:
           - "kubectl logs web"
-      - prompt: "The container has restarted and current logs are empty. Read the crashed instance."
+      - prompt: "Pod web restarted and current logs are empty. Read the crashed instance."
         answers:
           - "kubectl logs web --previous"
           - "kubectl logs --previous web"
