@@ -273,101 +273,116 @@ def solve_battle(scheduler, encounter, world_root="world", miss_damage=5,
 
 def _solve_honor(scheduler, encounter, world_root, miss_damage,
                  screen=None, zone_id=None, hp=0, max_hp=20):
-    """Honor-system battle solved by the player and self-reported."""
+    """Honor-system battle: loops until the player self-reports success."""
     key = encounter.get("key") or "solve"
     objective = encounter["objective"]
 
-    if screen:
-        screen.solve_prompt(zone_id, encounter, hp, max_hp)
-    else:
-        print()
-        print("  -- SOLVE (honor system) --")
-        print("  " + objective)
-        if encounter.get("hint"):
-            print("  Hint: " + encounter["hint"])
-        if encounter.get("fixture"):
-            print("  Reference capture: {}/{}".format(world_root, encounter["fixture"]))
-        print("  State or run the investigation, then report honestly.")
-
-    _prompt("  Press Enter when you have worked it through... ")
-    reported = _yes_no("  Did you reach the right answer?")
-
     scheduler.ensure(key, objective, encounter.get("hint", ""))
-    scheduler.record(key, reported, 0.0, 0)
 
-    if screen:
-        screen.solve_result(zone_id, encounter, hp, max_hp, reported)
-    else:
+    penalty_dealt = False
+    while True:
+        if screen:
+            screen.solve_prompt(zone_id, encounter, hp, max_hp)
+        else:
+            print()
+            print("  -- SOLVE (honor system) --")
+            print("  " + objective)
+            if encounter.get("hint"):
+                print("  Hint: " + encounter["hint"])
+            if encounter.get("fixture"):
+                print("  Reference capture: {}/{}".format(world_root, encounter["fixture"]))
+            print("  State or run the investigation, then report honestly.")
+
+        _prompt("  Press Enter when you have worked it through... ")
+        reported = _yes_no("  Did you reach the right answer?")
+
         if reported:
-            print("  The gate swings open.")
+            scheduler.record(key, True, 0.0, 0)
+            if screen:
+                screen.solve_result(zone_id, encounter, hp, max_hp, True)
+            else:
+                print("  The gate swings open.")
+            return {"correct": True, "damage": miss_damage if penalty_dealt else 0}
+
+        if not penalty_dealt:
+            penalty_dealt = True
+        scheduler.record(key, False, 0.0, 0)
+        if screen:
+            screen.solve_result(zone_id, encounter, hp, max_hp, False)
         else:
             print("  The gate holds. Regroup and walk the chain again.")
-
-    return {"correct": reported, "damage": 0 if reported else miss_damage}
 
 
 def _solve_dry_run(scheduler, encounter, miss_damage,
                    screen=None, zone_id=None, hp=0, max_hp=20):
-    """Verify a kubectl create-style command with --dry-run=client, no cluster."""
+    """Verify a kubectl command with --dry-run=client. Loops until the command passes."""
     key = encounter.get("key") or "solve"
     objective = encounter["objective"]
-
-    if screen:
-        screen.solve_prompt(zone_id, encounter, hp, max_hp)
-    else:
-        print()
-        print("  -- SOLVE (dry-run verified) --")
-        print("  " + objective)
-        if encounter.get("hint"):
-            print("  Hint: " + encounter["hint"])
 
     scheduler.ensure(key, objective, encounter.get("hint", ""))
 
     if shutil.which("kubectl") is None:
         print("  kubectl is not on PATH, so this solve cannot be verified.")
         print("  Install it with: brew install kubernetes-cli")
-        return _report_fallback(scheduler, key, miss_damage)
+        return _report_fallback(scheduler, key, miss_damage,
+                                screen=screen, zone_id=zone_id,
+                                encounter=encounter, hp=hp, max_hp=max_hp)
 
-    command = _prompt("  Type your kubectl command:\n  > ").strip()
-    if not command:
-        print("  No command entered. The gate holds.")
+    penalty_dealt = False
+    while True:
+        if screen:
+            screen.solve_prompt(zone_id, encounter, hp, max_hp)
+        else:
+            print()
+            print("  -- SOLVE (dry-run verified) --")
+            print("  " + objective)
+            if encounter.get("hint"):
+                print("  Hint: " + encounter["hint"])
+
+        command = _prompt("  Type your kubectl command:\n  > ").strip()
+        if not command:
+            continue
+
+        verb = _kubectl_verb(command)
+        if verb in _READ_VERBS:
+            print("  '{}' is a read verb. --dry-run cannot validate it.".format(verb))
+            return _report_fallback(scheduler, key, miss_damage,
+                                    screen=screen, zone_id=zone_id,
+                                    encounter=encounter, hp=hp, max_hp=max_hp)
+
+        status, output = _run_dry_run(command)
+
+        if status == "pass":
+            if not screen:
+                print("  kubectl accepted it. Generated manifest:")
+                print()
+                preview_lines = (output or "").rstrip("\n").splitlines()[:8]
+                for line in preview_lines:
+                    print("    " + line)
+                if len((output or "").splitlines()) > 8:
+                    print("    ... (truncated)")
+            scheduler.record(key, True, 0.0, 0)
+            if screen:
+                screen.solve_result(zone_id, encounter, hp, max_hp, True, output)
+            return {"correct": True, "damage": miss_damage if penalty_dealt else 0}
+
+        if status == "unverifiable":
+            print("  This command needs a reachable cluster to verify.")
+            print("  Falling back to honor-system.")
+            return _report_fallback(scheduler, key, miss_damage,
+                                    screen=screen, zone_id=zone_id,
+                                    encounter=encounter, hp=hp, max_hp=max_hp)
+
+        # status == "fail": show error, penalise once, then retry
+        if not penalty_dealt:
+            penalty_dealt = True
         scheduler.record(key, False, 0.0, 0)
         if screen:
-            screen.solve_result(zone_id, encounter, hp, max_hp, False)
-        return {"correct": False, "damage": miss_damage}
-
-    verb = _kubectl_verb(command)
-    if verb in _READ_VERBS:
-        print("  '{}' is a read verb. --dry-run cannot validate it.".format(verb))
-        return _report_fallback(scheduler, key, miss_damage)
-
-    status, output = _run_dry_run(command)
-
-    if status == "pass":
-        print("  kubectl accepted it. Generated manifest:")
-        print()
-        # Show a trimmed preview so the screen doesn't overflow.
-        preview_lines = (output or "").rstrip("\n").splitlines()[:8]
-        for line in preview_lines:
-            print("    " + line)
-        if len((output or "").splitlines()) > 8:
-            print("    ... (truncated)")
-        scheduler.record(key, True, 0.0, 0)
-        if screen:
-            screen.solve_result(zone_id, encounter, hp, max_hp, True, output)
-        return {"correct": True, "damage": 0}
-
-    if status == "unverifiable":
-        print("  This command needs a reachable cluster to verify.")
-        print("  Falling back to honor-system.")
-        return _report_fallback(scheduler, key, miss_damage)
-
-    print("  kubectl rejected it:")
-    print(_indent(output or "(no error output)"))
-    scheduler.record(key, False, 0.0, 0)
-    if screen:
-        screen.solve_result(zone_id, encounter, hp, max_hp, False, output)
-    return {"correct": False, "damage": miss_damage}
+            screen.solve_result(zone_id, encounter, hp, max_hp, False, output)
+        else:
+            print("  kubectl rejected it:")
+            print(_indent(output or "(no error output)"))
+            print("  Try again.")
 
 
 def _kubectl_verb(command):
@@ -444,16 +459,29 @@ def _run_dry_run(command):
     return "fail", error_text
 
 
-def _report_fallback(scheduler, key, miss_damage):
-    """Honor-system reporter used when a dry-run solve cannot be verified."""
-    _prompt("  Run or state the correct command, then press Enter... ")
-    reported = _yes_no("  Did it work?")
-    scheduler.record(key, reported, 0.0, 0)
-    if reported:
-        print("  The gate swings open.")
-    else:
-        print("  The gate holds.")
-    return {"correct": reported, "damage": 0 if reported else miss_damage}
+def _report_fallback(scheduler, key, miss_damage,
+                     screen=None, zone_id=None, encounter=None, hp=0, max_hp=20):
+    """Honor-system fallback used when a dry-run solve cannot be verified. Loops until success."""
+    penalty_dealt = False
+    while True:
+        if screen and encounter is not None:
+            screen.solve_prompt(zone_id, encounter, hp, max_hp)
+        _prompt("  Run the correct command in your terminal, then press Enter... ")
+        reported = _yes_no("  Did it work?")
+        if reported:
+            scheduler.record(key, True, 0.0, 0)
+            if screen and encounter is not None:
+                screen.solve_result(zone_id, encounter, hp, max_hp, True)
+            else:
+                print("  The gate swings open.")
+            return {"correct": True, "damage": miss_damage if penalty_dealt else 0}
+        if not penalty_dealt:
+            penalty_dealt = True
+        scheduler.record(key, False, 0.0, 0)
+        if screen and encounter is not None:
+            screen.solve_result(zone_id, encounter, hp, max_hp, False)
+        else:
+            print("  The gate holds. Try again.")
 
 
 def _indent(text, prefix="    "):
