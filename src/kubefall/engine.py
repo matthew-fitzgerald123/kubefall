@@ -16,9 +16,18 @@ import os
 
 from . import battle
 from . import campaign
+from . import display
 from . import save
 from . import srs
 from . import world
+
+
+def _zone_number(zone_id):
+    """Return the 1-based zone number from an id like 'zone07_namespaces'."""
+    try:
+        return int(zone_id.split("_")[0].replace("zone", ""))
+    except (ValueError, IndexError):
+        return 0
 
 
 class Engine:
@@ -27,10 +36,10 @@ class Engine:
         self.world_root = world_root
         self.campaign_dir = campaign_dir
         self.meta = save.load_meta(save_dir)
-        # The scheduler operates directly on the meta dict, so persisting the
-        # meta state persists the queue with no copying.
         self.scheduler = srs.Scheduler(self.meta["srs"])
         self.zones = campaign.load_campaign(campaign_dir)
+        self.screen = display.Screen()
+        self.current_run = None
 
     # -- lifecycle ----------------------------------------------------------
 
@@ -38,11 +47,27 @@ class Engine:
         """Play one full descent. Returns 0 on a clean exit."""
         world.build_world(self.world_root)
         run = save.new_run()
+        self.current_run = run
         save.save_run(run, self.save_dir)
 
         self._intro()
 
-        for index, zone in enumerate(self.zones):
+        start_index = self._find_start_zone()
+        if start_index > 0:
+            zone_name = self.zones[start_index].name
+            try:
+                answer = input(
+                    "\n  You have cleared {} zone(s). Jump to {}? [Y/n] ".format(
+                        start_index, zone_name
+                    )
+                ).strip().lower()
+            except EOFError:
+                answer = "y"
+            if not (not answer or answer.startswith("y")):
+                start_index = 0
+
+        for index in range(start_index, len(self.zones)):
+            zone = self.zones[index]
             run["zone_index"] = index
             run["position"] = zone.path
             compressed = zone.id in self.meta["cleared_zones"]
@@ -58,17 +83,26 @@ class Engine:
             if zone.id not in self.meta["cleared_zones"]:
                 self.meta["cleared_zones"].append(zone.id)
             self._persist_meta()
+            self.screen.clear()
             print("\n  Zone cleared: {}.".format(zone.name))
 
         self._victory(run)
         save.clear_run(self.save_dir)
         return 0
 
+    def _find_start_zone(self):
+        """Return the index of the first uncleared zone (0 if all cleared)."""
+        cleared = set(self.meta["cleared_zones"])
+        for i, zone in enumerate(self.zones):
+            if zone.id not in cleared:
+                return i
+        return 0
+
     # -- zone play ----------------------------------------------------------
 
     def _play_zone(self, zone, run, compressed):
         for encounter in zone.encounters:
-            outcome = self._fight(zone, encounter, compressed)
+            outcome = self._fight(zone, encounter, run, compressed)
             if outcome is None:
                 continue  # compressed-mode skip of a stretched recall
 
@@ -81,36 +115,50 @@ class Engine:
                 return False
         return True
 
-    def _fight(self, zone, encounter, compressed):
+    def _fight(self, zone, encounter, run, compressed):
         kind = encounter["type"]
+        hp = run["hp"]
+        max_hp = run["max_hp"]
 
         if kind == "villager":
-            return battle.villager_battle(self.scheduler, encounter, compressed=compressed)
+            return battle.villager_battle(
+                self.scheduler, encounter,
+                compressed=compressed,
+                screen=self.screen,
+                zone_id=zone.id,
+            )
 
         if kind == "recall":
             key = encounter.get("key") or encounter["answers"][0]
-            # In a cleared zone, a recall whose item is not yet due is mastered
-            # for now and stays buried.
             if compressed and not self.scheduler.is_due(key):
                 return None
-            return battle.recall_battle(self.scheduler, encounter)
+            return battle.recall_battle(
+                self.scheduler, encounter,
+                screen=self.screen,
+                zone_id=zone.id,
+                hp=hp,
+                max_hp=max_hp,
+            )
 
         if kind == "solve":
-            return battle.solve_battle(self.scheduler, encounter, world_root=self.world_root)
+            return battle.solve_battle(
+                self.scheduler, encounter,
+                world_root=self.world_root,
+                screen=self.screen,
+                zone_id=zone.id,
+                hp=hp,
+                max_hp=max_hp,
+            )
 
-        # Unknown types are rejected at load time, so this should be unreachable.
         raise campaign.CampaignError("unknown encounter type: {!r}".format(kind))
 
     # -- death and persistence ---------------------------------------------
 
     def _death(self, run):
-        print("\n  Your HP hits zero. The descent collapses.")
-        print("  You wake back at the pods.")
+        self.screen.death()
         save.clear_run(self.save_dir)
-        # Meta state is saved here precisely to prove it survives. The run file
-        # is already gone; the queue and cleared zones remain.
         self._persist_meta()
-        print("  Run state wiped. Your memory is intact: {} commands tracked.".format(
+        print("\n  Run state wiped. Your memory is intact: {} commands tracked.".format(
             len(self.scheduler.items)
         ))
 
@@ -123,20 +171,16 @@ class Engine:
     def _intro(self):
         cleared = len(self.meta["cleared_zones"])
         tracked = len(self.scheduler.items)
-        print("=" * 60)
-        print("  kubefall")
-        print("  A descent through a cluster. The map is kubectl.")
-        print("=" * 60)
-        print("  Starting at the pods. Zones cleared so far: {}. Commands tracked: {}.".format(
-            cleared, tracked
-        ))
+        self.screen.intro(cleared, tracked)
 
     def _enter_zone(self, zone, compressed):
-        mode = "compressed" if compressed else "full"
-        print("\n" + "-" * 60)
-        print("  Descending to {}  ({})  [{} mode]".format(zone.path, zone.name, mode))
-        print("  Theme: {}".format(zone.theme))
-        print("-" * 60)
+        self.screen.zone_transition(
+            zone_id=zone.id,
+            zone_name=zone.name,
+            zone_path=zone.path,
+            zone_theme=zone.theme,
+            cleared=compressed,
+        )
 
     def _show_hp(self, run):
         hp = max(0, run["hp"])
@@ -146,13 +190,7 @@ class Engine:
         print("  HP [{}] {}/{}".format(bar, hp, run["max_hp"]))
 
     def _victory(self, run):
-        deepest = self.zones[-1].name if self.zones else "the deep system"
-        print("\n" + "=" * 60)
-        print("  You cleared all {} zones and reached {}.".format(len(self.zones), deepest))
-        print("  You stand at the bottom with {} HP to spare.".format(max(0, run["hp"])))
-        print("  The descent is mapped. Run again: mastered commands stay buried,")
-        print("  and only what you are still slow on will rise to meet you.")
-        print("=" * 60)
+        self.screen.victory(self.zones, run["hp"])
 
 
 def main(argv=None):

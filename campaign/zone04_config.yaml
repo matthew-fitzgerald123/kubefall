@@ -45,12 +45,37 @@ encounters:
         desc: "list secrets"
       - command: "env injection"
         desc: "config reaches a pod as env vars or a mounted volume"
-    quiz:
-      prompt: "Which object holds sensitive values and is base64 encoded, a configmap or a secret?"
-      answers:
-        - "secret"
-        - "a secret"
-        - "secrets"
+    quizzes:
+      - prompt: "Which command creates a configmap of non-sensitive settings?"
+        answers:
+          - "kubectl create configmap"
+          - "kubectl create cm"
+      - prompt: "Which object holds sensitive values and is base64 encoded, a configmap or a secret?"
+        answers:
+          - "secret"
+          - "a secret"
+          - "secrets"
+          - "kubectl create secret"
+      - prompt: "Which flag sets a key=value pair inline when creating a configmap or secret?"
+        answers:
+          - "--from-literal"
+      - prompt: "Which flag loads configuration from a file when creating a configmap or secret?"
+        answers:
+          - "--from-file"
+      - prompt: "Which command lists configmaps in the current namespace?"
+        answers:
+          - "kubectl get cm"
+          - "kubectl get configmaps"
+      - prompt: "Which command lists secrets in the current namespace?"
+        answers:
+          - "kubectl get secret"
+          - "kubectl get secrets"
+      - prompt: "Config reaches a pod two ways: as environment variables, and as what else?"
+        answers:
+          - "volume"
+          - "mounted volume"
+          - "a mounted volume"
+          - "volumes"
 
   - type: recall
     prompt: "Create a configmap named web-config with key COLOR set to blue, inline."
@@ -99,5 +124,5 @@ encounters:
       Create a configmap named web-config with the key COLOR set to blue, from a
       literal. This solve is dry-run verified end to end: kubectl validates it
       with no cluster and shows the configmap manifest it generates.
-    hint: "kubectl create configmap web-config --from-literal=COLOR=blue"
+    hint: "kubectl create configmap <name> --from-literal=<key>=<value>"
     key: "kubectl create configmap literal"

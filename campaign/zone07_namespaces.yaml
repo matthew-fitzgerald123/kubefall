@@ -1,0 +1,125 @@
+# Zone 7: Namespaces and Contexts.
+#
+# Isolation and navigation. Every cluster object lives in a namespace, and every
+# kubeconfig can hold many contexts pointing at many clusters. The Navigator
+# teaches the player to list and create namespaces, to read and switch contexts,
+# and to set a default namespace on the current context so they stop typing -n
+# on every command. The boss is a dry-run-verified solve that creates a namespace,
+# which kubectl validates fully offline.
+
+id: zone07_namespaces
+name: Namespaces and Contexts
+path: cluster/namespaces
+theme: Isolation and navigation. get ns, create namespace, config get-contexts, use-context, set-context.
+commands:
+  - kubectl get namespaces
+  - kubectl create namespace
+  - kubectl config get-contexts
+  - kubectl config current-context
+  - kubectl config use-context
+  - kubectl config view
+  - kubectl config set-context --current --namespace
+
+encounters:
+  - type: villager
+    name: The Navigator
+    lore: >-
+      A cartographer who maps the living cluster. "Every object lives in a
+      namespace," he says, "and if you do not name one, default is where it
+      lands. A kubeconfig holds many contexts, each a named pointer to a cluster
+      and a user and a namespace. get-contexts lists them all. use-context
+      switches between them. set-context with --current and --namespace saves you
+      from typing -n on every single command for the rest of the session. Know
+      where you are, or you will delete the wrong thing."
+    teaches:
+      - command: "kubectl get namespaces"
+        desc: "list all namespaces in the cluster"
+      - command: "kubectl create namespace"
+        desc: "create a new namespace"
+      - command: "kubectl config get-contexts"
+        desc: "list all contexts in the kubeconfig"
+      - command: "kubectl config current-context"
+        desc: "show the name of the currently active context"
+      - command: "kubectl config use-context"
+        desc: "switch to a different context by name"
+      - command: "kubectl config view"
+        desc: "print the full kubeconfig file"
+      - command: "kubectl config set-context --current --namespace"
+        desc: "set the default namespace for the current context"
+    quizzes:
+      - prompt: "Which command lists all namespaces in the cluster?"
+        answers:
+          - "kubectl get namespaces"
+          - "kubectl get ns"
+      - prompt: "Which command creates a new namespace?"
+        answers:
+          - "kubectl create namespace"
+      - prompt: "Which command lists all contexts stored in your kubeconfig?"
+        answers:
+          - "kubectl config get-contexts"
+      - prompt: "Which command shows the name of the currently active context?"
+        answers:
+          - "kubectl config current-context"
+      - prompt: "Which command switches to a different kubeconfig context by name?"
+        answers:
+          - "kubectl config use-context"
+      - prompt: "Which command prints the full kubeconfig file?"
+        answers:
+          - "kubectl config view"
+      - prompt: "Which command sets the default namespace for the current context so you stop typing -n on every command?"
+        answers:
+          - "kubectl config set-context --current --namespace"
+
+  - type: recall
+    prompt: "List all namespaces in the cluster."
+    answers:
+      - "kubectl get namespaces"
+      - "kubectl get ns"
+    time_limit: 7
+
+  - type: recall
+    prompt: "Create a namespace named staging."
+    answers:
+      - "kubectl create namespace staging"
+    time_limit: 8
+
+  - type: recall
+    prompt: "List all contexts from your kubeconfig."
+    answers:
+      - "kubectl config get-contexts"
+    time_limit: 8
+
+  - type: recall
+    prompt: "Show which context is currently active."
+    answers:
+      - "kubectl config current-context"
+    time_limit: 9
+
+  - type: recall
+    prompt: "Switch to the context named prod."
+    answers:
+      - "kubectl config use-context prod"
+    time_limit: 8
+
+  - type: recall
+    prompt: "Print the full kubeconfig file."
+    answers:
+      - "kubectl config view"
+    time_limit: 7
+
+  - type: recall
+    prompt: "Set the default namespace for the current context to staging."
+    answers:
+      - "kubectl config set-context --current --namespace=staging"
+      - "kubectl config set-context --current --namespace staging"
+    time_limit: 11
+
+  - type: solve
+    name: The Right Context
+    verify: dry-run
+    objective: >-
+      Create a namespace named staging with kubectl create namespace. This is
+      dry-run verified: kubectl validates it with no cluster and shows the namespace
+      manifest it would create.
+    hint: "kubectl create namespace <name>"
+    key: "kubectl create namespace"

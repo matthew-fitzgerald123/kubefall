@@ -48,12 +48,32 @@ encounters:
         desc: "list pods in a named namespace"
       - command: "kubectl get pods -l"
         desc: "filter pods by a label selector"
-    quiz:
-      prompt: "Which verb shows the full detail and the events of a single pod, get or describe?"
-      answers:
-        - "describe"
-        - "kubectl describe"
-        - "kubectl describe pod"
+    quizzes:
+      - prompt: "Which command creates and starts a single pod from an image?"
+        answers:
+          - "kubectl run"
+      - prompt: "Which command lists pods with a short status line each?"
+        answers:
+          - "kubectl get pods"
+          - "kubectl get po"
+      - prompt: "Which verb shows the full detail and events of a single pod, get or describe?"
+        answers:
+          - "describe"
+          - "kubectl describe"
+          - "kubectl describe pod"
+      - prompt: "Which command removes a pod by name?"
+        answers:
+          - "kubectl delete pod"
+      - prompt: "Which flag gives a wider pod listing that includes node and pod IP?"
+        answers:
+          - "-o wide"
+      - prompt: "Which flag narrows a pod listing to a specific namespace?"
+        answers:
+          - "-n"
+      - prompt: "Which flag filters pods by a label selector?"
+        answers:
+          - "-l"
+          - "--selector"
 
   - type: recall
     prompt: "Run a pod named web from the nginx image."
@@ -107,5 +127,5 @@ encounters:
       Create a pod named web from the nginx image using kubectl run. The command
       is dry-run verified: kubectl validates it and you will see the pod manifest
       it generates.
-    hint: "kubectl run web --image=nginx"
+    hint: "kubectl run <name> --image=<image>"
     key: "kubectl run pod"

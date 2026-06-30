@@ -48,13 +48,36 @@ encounters:
         desc: "the cluster's recent events, newest activity included"
       - command: "kubectl top pod"
         desc: "live CPU and memory use per pod"
-    quiz:
-      prompt: "A container has crashed and restarted, so its current logs are empty. Which flag shows the crashed instance's logs?"
-      answers:
-        - "--previous"
-        - "-p"
-        - "logs --previous"
-        - "kubectl logs --previous"
+    quizzes:
+      - prompt: "Which command prints a container's stdout and stderr?"
+        answers:
+          - "kubectl logs"
+      - prompt: "Which flag follows logs live as new lines arrive?"
+        answers:
+          - "-f"
+          - "logs -f"
+          - "kubectl logs -f"
+      - prompt: "A container has crashed and restarted, so its current logs are empty. Which flag shows the crashed instance's logs?"
+        answers:
+          - "--previous"
+          - "-p"
+          - "logs --previous"
+          - "kubectl logs --previous"
+      - prompt: "Which command opens an interactive shell inside a running container?"
+        answers:
+          - "kubectl exec -it"
+          - "exec -it"
+      - prompt: "Which command shows the full detail and event trail for a single Kubernetes object?"
+        answers:
+          - "kubectl describe"
+          - "describe"
+      - prompt: "Which command shows the cluster's recent events?"
+        answers:
+          - "kubectl get events"
+      - prompt: "Which command shows live CPU and memory use per pod?"
+        answers:
+          - "kubectl top pod"
+          - "kubectl top pods"
 
   - type: recall
     prompt: "Print the logs of the pod named web."
@@ -141,6 +164,6 @@ encounters:
       get the pod state, describe the pod for its events, read the logs, and use
       logs --previous because the container has restarted. This is honor-system,
       since these are read verbs and must never be dry-run validated.
-    hint: "kubectl get pods ; kubectl describe pod web ; kubectl logs web --previous"
+    hint: "get pods -> describe pod -> logs -> logs --previous"
     fixture: "captures/describe_web_events.txt"
     key: "debug read-verbs"

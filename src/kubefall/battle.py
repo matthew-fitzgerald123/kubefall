@@ -6,9 +6,9 @@ RECALL  - timed retrieval. A short prompt with a visible countdown. The player
           The matcher is kubectl-aware: for a `kubectl ...` answer it treats
           resource short-names, singular/plural, and the -n/--namespace flag
           forms as equivalent, without ever collapsing distinct resources.
-VILLAGER - teaching. An NPC delivers lore and the command or flag, then quiz
-          gates the player before letting them pass, so recognition cannot
-          masquerade as recall.
+VILLAGER - teaching. An NPC delivers lore and every taught command is quizzed
+          before letting the player pass. Iterates `quizzes` (list) not a
+          single quiz dict.
 SOLVE   - two flavors:
           * dry-run verified (creation zones). The player types a kubectl
             create-style command into the game; kubefall appends
@@ -52,8 +52,11 @@ _RESOURCE_ALIASES = {
     "ns": "namespace", "namespace": "namespace", "namespaces": "namespace",
     "rs": "replicaset", "replicaset": "replicaset", "replicasets": "replicaset",
     "no": "node", "node": "node", "nodes": "node",
+    "sa": "serviceaccount", "serviceaccount": "serviceaccount", "serviceaccounts": "serviceaccount",
     "rc": "replicationcontroller", "replicationcontroller": "replicationcontroller",
     "secret": "secret", "secrets": "secret",
+    "role": "role", "roles": "role",
+    "rolebinding": "rolebinding", "rolebindings": "rolebinding",
 }
 
 # Read verbs that --dry-run=client cannot validate. A solve must never run a
@@ -78,15 +81,7 @@ _VALUE_FLAGS_BEFORE_VERB = frozenset([
 
 
 def _tokenize(text):
-    """Split into shell-like tokens, keeping quoted spans whole.
-
-    Whitespace separates tokens, except whitespace inside a quoted span, which
-    stays part of that single token. This is what guarantees token boundaries:
-    a one-argument "foo bar" comes back as one token, never two. Quote
-    characters are kept on the token here; stripping happens in _strip_quotes.
-    An unterminated quote is treated literally, so the opening quote just rides
-    along on the token and nothing is merged or split unexpectedly.
-    """
+    """Split into shell-like tokens, keeping quoted spans whole."""
     tokens = []
     current = []
     quote = None
@@ -110,14 +105,7 @@ def _tokenize(text):
 
 
 def _strip_quotes(token):
-    """Strip one matched surrounding quote pair, but only when it is safe.
-
-    Stripped only when the same quote character wraps both ends and the inner
-    span has no whitespace, so "config.yaml" becomes config.yaml. A quoted span
-    that contains whitespace keeps its quotes, so "foo bar" stays a single
-    distinct token and never looks like the two tokens foo bar. Mismatched or
-    internal quotes are left untouched.
-    """
+    """Strip one matched surrounding quote pair, but only when it is safe."""
     if len(token) >= 2 and token[0] in _QUOTES and token[-1] == token[0]:
         inner = token[1:-1]
         if token[0] not in inner and not any(ch.isspace() for ch in inner):
@@ -126,19 +114,7 @@ def _strip_quotes(token):
 
 
 def _normalize_kubectl(tokens):
-    """Fold kubectl resource aliases and namespace flag forms to a canonical form.
-
-    Only ever called for a command whose first token is `kubectl`, so it cannot
-    affect any non-kubectl answer. Two normalizations happen here:
-
-      - Resource equivalence: a plain-word token that names a resource is mapped
-        to that resource's canonical name (po, pods -> pod). Different resources
-        map to different canonicals, so they never collapse together.
-      - Namespace flag: `-n` and `--namespace` (including the `=value` forms) are
-        rewritten to a single `--namespace` word so `-n web` and `--namespace web`
-        grade identically. Doing this here, scoped to kubectl, is why it does not
-        disturb `grep -n` or `head -n`, where -n is a different flag entirely.
-    """
+    """Fold kubectl resource aliases and namespace flag forms to a canonical form."""
     out = []
     for token in tokens:
         lower = token.lower()
@@ -157,21 +133,7 @@ def _normalize_kubectl(tokens):
 
 
 def _canonical(text):
-    """Reduce a command answer to a form that ignores only safe differences.
-
-    Ignored (safe): surrounding and repeated whitespace; the order of short
-    flags; whether short flags are bundled (-tulpn) or separated (-t -u -l);
-    surrounding matched quotes around a whitespace-free argument; and, for a
-    `kubectl` answer only, resource short-name and singular/plural spelling plus
-    the -n/--namespace flag form.
-
-    NOT ignored (would change meaning): the exact multiset of flag letters, so
-    -tulpn differs from -tuln; the case of flag letters, so ls -R differs from
-    ls -r; token boundaries, so a quoted "foo bar" never equals two arguments;
-    distinct kubectl resources, so pods never equals deployments; and every other
-    non-flag token. Non-flag words are lowercased for command-name forgiveness,
-    matching the original behavior.
-    """
+    """Reduce a command answer to a form that ignores only safe differences."""
     raw_tokens = [_strip_quotes(token) for token in _tokenize(text)]
     if raw_tokens and raw_tokens[0].lower() == "kubectl":
         raw_tokens = _normalize_kubectl(raw_tokens)
@@ -179,35 +141,54 @@ def _canonical(text):
     words = []
     for token in raw_tokens:
         if _SHORT_FLAG.fullmatch(token):
-            flags.extend(token[1:])  # the letters only, case preserved
+            flags.extend(token[1:])
         else:
             words.append(token.lower())
     return tuple(words), tuple(sorted(flags))
 
 
 def matches(answer, accepted):
-    """True if answer is equivalent to any accepted option.
-
-    Equivalence is deliberately narrow: flag order, flag bundling, whitespace,
-    and (for kubectl) resource short-names and namespace flag form. A missing
-    flag, a wrong flag, a different flag case, a different argument, or a
-    different resource all fail. See _canonical for the exact contract.
-    """
+    """True if answer is equivalent to any accepted option."""
     if answer is None:
         return False
     target = _canonical(answer)
     return any(target == _canonical(option) for option in accepted)
 
 
-def timed_input(prompt, time_limit):
-    """Read a line, but give up after time_limit seconds.
+# ---------------------------------------------------------------------------
+# Stdin drain (prevents desync after a timeout)
+# ---------------------------------------------------------------------------
 
-    Returns (answer, elapsed, timed_out). On timeout or end of input the answer
-    is None. Uses select so a real terminal gets a hard cutoff; if select is not
-    available (an unusual stdin) it falls back to an untimed read.
+# Set to True when timed_input times out so the next call drains any
+# buffered keystrokes the player typed after the timeout fired.
+_pending_drain = False
+
+
+def _drain_stdin(timeout=0.0):
+    """Discard any data waiting in stdin."""
+    try:
+        while True:
+            ready, _, _ = select.select([sys.stdin], [], [], timeout)
+            if not ready:
+                break
+            line = sys.stdin.readline()
+            if not line:
+                break
+    except (OSError, ValueError):
+        pass
+
+
+def _read_timed(time_limit):
+    """Read one line from stdin with a hard timeout. Returns (answer, elapsed, timed_out).
+
+    Does NOT print anything. Handles the pending-drain logic to prevent
+    answer desync after a timeout.
     """
-    sys.stdout.write(prompt + "\n> ")
-    sys.stdout.flush()
+    global _pending_drain
+    if _pending_drain:
+        _drain_stdin(timeout=0.2)
+        _pending_drain = False
+
     start = time.time()
     try:
         ready, _, _ = select.select([sys.stdin], [], [], time_limit)
@@ -223,13 +204,28 @@ def timed_input(prompt, time_limit):
             return None, elapsed, True
         return line.strip(), elapsed, False
 
-    sys.stdout.write("\n... time!\n")
+    _pending_drain = True
     return None, time.time() - start, True
+
+
+def timed_input(prompt, time_limit):
+    """Read a line, printing prompt and timeout message (plain-text path).
+
+    Returns (answer, elapsed, timed_out).
+    """
+    sys.stdout.write(prompt + "\n> ")
+    sys.stdout.flush()
+    answer, elapsed, timed_out = _read_timed(time_limit)
+    if timed_out:
+        sys.stdout.write("\n... time!\n")
+        sys.stdout.flush()
+    return answer, elapsed, timed_out
 
 
 # --- RECALL ----------------------------------------------------------------
 
-def recall_battle(scheduler, encounter, miss_damage=3):
+def recall_battle(scheduler, encounter, miss_damage=3,
+                  screen=None, zone_id=None, hp=0, max_hp=20):
     """Timed retrieval drill graded by the countdown."""
     accepted = encounter["answers"]
     key = encounter.get("key") or accepted[0]
@@ -237,57 +233,61 @@ def recall_battle(scheduler, encounter, miss_damage=3):
 
     scheduler.ensure(key, encounter["prompt"], accepted[0])
 
-    print()
-    print("  -- RECALL --")
-    banner = "  {} ({} seconds)".format(encounter["prompt"], limit)
-    answer, elapsed, timed_out = timed_input(banner, limit)
-    correct = (not timed_out) and matches(answer, accepted)
+    if screen:
+        screen.battle_prompt(zone_id, encounter, hp, max_hp)
+        answer, elapsed, timed_out = _read_timed(limit)
+    else:
+        print()
+        print("  -- RECALL --")
+        banner = "  {} ({} seconds)".format(encounter["prompt"], limit)
+        answer, elapsed, timed_out = timed_input(banner, limit)
 
+    correct = (not timed_out) and matches(answer, accepted)
     scheduler.record(key, correct, elapsed, limit)
 
-    if correct:
-        print("  Hit. {:.1f}s.".format(elapsed))
-    elif timed_out:
-        print("  Too slow. The rune was: {}".format(accepted[0]))
+    if screen:
+        screen.battle_result(zone_id, encounter, hp, max_hp,
+                             correct, timed_out, accepted[0])
     else:
-        print("  Miss. The rune was: {}".format(accepted[0]))
+        if correct:
+            print("  Hit. {:.1f}s.".format(elapsed))
+        elif timed_out:
+            print("  Too slow. The rune was: {}".format(accepted[0]))
+        else:
+            print("  Miss. The rune was: {}".format(accepted[0]))
 
     return {"correct": correct, "damage": 0 if correct else miss_damage}
 
 
 # --- SOLVE -----------------------------------------------------------------
 
-def solve_battle(scheduler, encounter, world_root="world", miss_damage=5):
-    """Dispatch a solve to the dry-run-verified path or the honor-system path.
-
-    A solve marked `verify: dry-run` in the campaign runs the player's submitted
-    command through kubectl with --dry-run=client. Every other solve (the
-    rootfall default, and the kubefall debugging and triage bosses) is honor
-    system, exactly as rootfall always did it.
-    """
+def solve_battle(scheduler, encounter, world_root="world", miss_damage=5,
+                 screen=None, zone_id=None, hp=0, max_hp=20):
+    """Dispatch a solve to the dry-run-verified path or the honor-system path."""
     if encounter.get("verify") == "dry-run":
-        return _solve_dry_run(scheduler, encounter, miss_damage)
-    return _solve_honor(scheduler, encounter, world_root, miss_damage)
+        return _solve_dry_run(scheduler, encounter, miss_damage,
+                              screen=screen, zone_id=zone_id, hp=hp, max_hp=max_hp)
+    return _solve_honor(scheduler, encounter, world_root, miss_damage,
+                        screen=screen, zone_id=zone_id, hp=hp, max_hp=max_hp)
 
 
-def _solve_honor(scheduler, encounter, world_root, miss_damage):
-    """Honor-system battle solved by the player and self-reported.
-
-    Used for read-verb investigations and reasoning-chain bosses, where there is
-    nothing for kubectl to validate. The player states or runs the correct
-    commands, then reports.
-    """
+def _solve_honor(scheduler, encounter, world_root, miss_damage,
+                 screen=None, zone_id=None, hp=0, max_hp=20):
+    """Honor-system battle solved by the player and self-reported."""
     key = encounter.get("key") or "solve"
     objective = encounter["objective"]
 
-    print()
-    print("  -- SOLVE (honor system) --")
-    print("  " + objective)
-    if encounter.get("hint"):
-        print("  Hint: " + encounter["hint"])
-    if encounter.get("fixture"):
-        print("  Reference capture: {}/{}".format(world_root, encounter["fixture"]))
-    print("  State or run the investigation, then report honestly. This is a prep tool.")
+    if screen:
+        screen.solve_prompt(zone_id, encounter, hp, max_hp)
+    else:
+        print()
+        print("  -- SOLVE (honor system) --")
+        print("  " + objective)
+        if encounter.get("hint"):
+            print("  Hint: " + encounter["hint"])
+        if encounter.get("fixture"):
+            print("  Reference capture: {}/{}".format(world_root, encounter["fixture"]))
+        print("  State or run the investigation, then report honestly.")
 
     _prompt("  Press Enter when you have worked it through... ")
     reported = _yes_no("  Did you reach the right answer?")
@@ -295,32 +295,31 @@ def _solve_honor(scheduler, encounter, world_root, miss_damage):
     scheduler.ensure(key, objective, encounter.get("hint", ""))
     scheduler.record(key, reported, 0.0, 0)
 
-    if reported:
-        print("  The gate swings open.")
+    if screen:
+        screen.solve_result(zone_id, encounter, hp, max_hp, reported)
     else:
-        print("  The gate holds. Regroup and walk the chain again.")
+        if reported:
+            print("  The gate swings open.")
+        else:
+            print("  The gate holds. Regroup and walk the chain again.")
 
     return {"correct": reported, "damage": 0 if reported else miss_damage}
 
 
-def _solve_dry_run(scheduler, encounter, miss_damage):
-    """Verify a kubectl create-style command with --dry-run=client, no cluster.
-
-    The player types their command into the game. kubefall appends
-    `--dry-run=client -o yaml` and runs it. kubectl exiting 0 with a manifest is
-    a pass, and the manifest is shown as feedback. A kubectl error is a miss, and
-    the error is surfaced and fed to SRS. If kubectl is not installed, or a read
-    verb is submitted (which dry-run cannot validate), the battle falls back to
-    honor-system self-report without crashing.
-    """
+def _solve_dry_run(scheduler, encounter, miss_damage,
+                   screen=None, zone_id=None, hp=0, max_hp=20):
+    """Verify a kubectl create-style command with --dry-run=client, no cluster."""
     key = encounter.get("key") or "solve"
     objective = encounter["objective"]
 
-    print()
-    print("  -- SOLVE (dry-run verified) --")
-    print("  " + objective)
-    if encounter.get("hint"):
-        print("  Hint: " + encounter["hint"])
+    if screen:
+        screen.solve_prompt(zone_id, encounter, hp, max_hp)
+    else:
+        print()
+        print("  -- SOLVE (dry-run verified) --")
+        print("  " + objective)
+        if encounter.get("hint"):
+            print("  Hint: " + encounter["hint"])
 
     scheduler.ensure(key, objective, encounter.get("hint", ""))
 
@@ -333,12 +332,13 @@ def _solve_dry_run(scheduler, encounter, miss_damage):
     if not command:
         print("  No command entered. The gate holds.")
         scheduler.record(key, False, 0.0, 0)
+        if screen:
+            screen.solve_result(zone_id, encounter, hp, max_hp, False)
         return {"correct": False, "damage": miss_damage}
 
     verb = _kubectl_verb(command)
     if verb in _READ_VERBS:
-        print("  '{}' is a read verb. --dry-run cannot validate it, so this".format(verb))
-        print("  falls back to honor-system self-report.")
+        print("  '{}' is a read verb. --dry-run cannot validate it.".format(verb))
         return _report_fallback(scheduler, key, miss_damage)
 
     status, output = _run_dry_run(command)
@@ -346,35 +346,36 @@ def _solve_dry_run(scheduler, encounter, miss_damage):
     if status == "pass":
         print("  kubectl accepted it. Generated manifest:")
         print()
-        print(_indent(output))
+        # Show a trimmed preview so the screen doesn't overflow.
+        preview_lines = (output or "").rstrip("\n").splitlines()[:8]
+        for line in preview_lines:
+            print("    " + line)
+        if len((output or "").splitlines()) > 8:
+            print("    ... (truncated)")
         scheduler.record(key, True, 0.0, 0)
+        if screen:
+            screen.solve_result(zone_id, encounter, hp, max_hp, True, output)
         return {"correct": True, "damage": 0}
 
     if status == "unverifiable":
-        # kubectl is installed but needs a reachable cluster to validate this
-        # verb (some, like run and expose, do API discovery even under
-        # --dry-run=client). With no cluster we cannot grade it, so degrade to
-        # honor-system rather than punish a possibly-correct answer.
-        print("  This command needs a reachable cluster to verify (kubectl did")
-        print("  API discovery and found none). Falling back to honor-system.")
+        print("  This command needs a reachable cluster to verify.")
+        print("  Falling back to honor-system.")
         return _report_fallback(scheduler, key, miss_damage)
 
     print("  kubectl rejected it:")
     print(_indent(output or "(no error output)"))
     scheduler.record(key, False, 0.0, 0)
+    if screen:
+        screen.solve_result(zone_id, encounter, hp, max_hp, False, output)
     return {"correct": False, "damage": miss_damage}
 
 
 def _kubectl_verb(command):
-    """The verb of a kubectl command: the first non-flag token after `kubectl`.
-
-    Returns the lowercased verb, or "" if it cannot be determined.
-    """
+    """The verb of a kubectl command: the first non-flag token after `kubectl`."""
     try:
         tokens = shlex.split(command)
     except ValueError:
         tokens = command.split()
-    # Drop a leading `kubectl` if the player included it.
     if tokens and tokens[0].lower() == "kubectl":
         tokens = tokens[1:]
     skip_next = False
@@ -384,16 +385,12 @@ def _kubectl_verb(command):
             continue
         if token.startswith("-"):
             if token in _VALUE_FLAGS_BEFORE_VERB:
-                skip_next = True  # this flag eats the next token as its value
+                skip_next = True
             continue
         return token.lower()
     return ""
 
 
-# Substrings that mark a failure as "kubectl could not reach a cluster" rather
-# than "the command was wrong". Some create-style verbs (run, expose) still do
-# API discovery under --dry-run=client, so with no cluster they error out on
-# connectivity, not on the command. We must not grade those as a miss.
 _NO_CLUSTER_MARKERS = (
     "connection refused",
     "couldn't get current server api group list",
@@ -411,17 +408,7 @@ def _looks_like_no_cluster(text):
 
 
 def _run_dry_run(command):
-    """Run command + `--dry-run=client -o yaml`. Returns (status, output).
-
-    status is one of:
-      "pass"          kubectl exited 0 and produced a manifest (output is the YAML)
-      "fail"          kubectl rejected the command (output is the error text)
-      "unverifiable"  kubectl could not reach a cluster it needed for discovery,
-                      so the command itself was never graded (output is the error)
-
-    Never raises: a missing binary, a parse failure, or a timeout all come back
-    as a clean status so the battle layer can degrade gracefully.
-    """
+    """Run command + `--dry-run=client -o yaml`. Returns (status, output)."""
     try:
         argv = shlex.split(command)
     except ValueError as error:
@@ -430,7 +417,6 @@ def _run_dry_run(command):
     if not argv:
         return "fail", "empty command"
     if argv[0].lower() != "kubectl":
-        # Be forgiving: let the player omit the leading `kubectl`.
         argv = ["kubectl"] + argv
 
     argv = argv + ["--dry-run=client", "-o", "yaml"]
@@ -439,7 +425,7 @@ def _run_dry_run(command):
             argv,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            universal_newlines=True,  # text mode, 3.9 compatible spelling
+            universal_newlines=True,
             timeout=15,
         )
     except FileNotFoundError:
@@ -476,40 +462,63 @@ def _indent(text, prefix="    "):
 
 # --- VILLAGER --------------------------------------------------------------
 
-def villager_battle(scheduler, encounter, compressed=False, miss_damage=1):
-    """Teaching NPC that quiz gates before letting the player pass."""
-    print()
-    print("  -- VILLAGER: {} --".format(encounter["name"]))
-
+def villager_battle(scheduler, encounter, compressed=False, miss_damage=1,
+                    screen=None, zone_id=None):
+    """Teaching NPC that quiz-gates on every taught command before letting the player pass."""
     if compressed:
-        if not _yes_no("  You have met this villager before. Hear the lore again?", default=False):
-            # Compressed mode: tutorial is skippable once the zone is cleared.
+        if not _yes_no("  You have met this villager before. Hear the lore again?",
+                       default=False):
             for rune in encounter.get("teaches", []):
                 scheduler.ensure(rune["command"], rune.get("desc", ""), rune["command"])
+            if screen:
+                screen.clear()
             print("  You nod and walk past.")
             return {"correct": True, "damage": 0}
 
-    print("  " + encounter["lore"])
-    print()
-    for rune in encounter.get("teaches", []):
-        print("    rune {:<28} {}".format(rune["command"], rune.get("desc", "")))
-    print()
+    if screen:
+        screen.villager_lore(zone_id, encounter)
+    else:
+        print()
+        print("  -- VILLAGER: {} --".format(encounter["name"]))
+        print("  " + encounter["lore"])
+        print()
+        for rune in encounter.get("teaches", []):
+            print("    rune {:<28} {}".format(rune["command"], rune.get("desc", "")))
+        print()
 
-    quiz = encounter["quiz"]
-    attempts = 0
-    while True:
-        answer = _prompt("  {}\n  > ".format(quiz["prompt"]))
-        if matches(answer, quiz["answers"]):
-            print("  Correct. The road opens.")
-            break
-        attempts += 1
-        print("  Not quite. The villager waits.")
+    quizzes = encounter.get("quizzes", [])
+    total_wrong = 0
 
-    # A passed quiz seeds every taught command into the SRS queue.
+    for idx, quiz_item in enumerate(quizzes):
+        wrong_attempts = 0
+        while True:
+            if screen:
+                screen.villager_quiz(zone_id, encounter, quiz_item,
+                                     idx, len(quizzes), wrong_attempts)
+                answer = _prompt("")
+            else:
+                answer = _prompt("  {}\n  > ".format(quiz_item["prompt"]))
+
+            if matches(answer, quiz_item["answers"]):
+                if screen:
+                    screen.villager_quiz_result(zone_id, encounter, quiz_item,
+                                                idx, len(quizzes), correct=True)
+                else:
+                    print("  Correct. The road opens.")
+                break
+
+            wrong_attempts += 1
+            total_wrong += 1
+            if screen:
+                screen.villager_quiz_result(zone_id, encounter, quiz_item,
+                                            idx, len(quizzes), correct=False)
+            else:
+                print("  Not quite. The villager waits.")
+
     for rune in encounter.get("teaches", []):
         scheduler.seed(rune["command"], rune.get("desc", ""), rune["command"])
 
-    return {"correct": True, "damage": min(attempts, 3) * miss_damage}
+    return {"correct": True, "damage": min(total_wrong, 3) * miss_damage}
 
 
 # --- small IO helpers ------------------------------------------------------

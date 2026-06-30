@@ -44,12 +44,32 @@ encounters:
         desc: "update a container image and trigger a rolling update"
       - command: "--replicas"
         desc: "the flag that sets how many pod copies to run"
-    quiz:
-      prompt: "A deployment manages a replicaset, and a replicaset manages what? One word."
-      answers:
-        - "pods"
-        - "pod"
-        - "the pods"
+    quizzes:
+      - prompt: "Which command creates a deployment that manages a replicaset of pods?"
+        answers:
+          - "kubectl create deployment"
+      - prompt: "Which command changes the desired replica count of a deployment?"
+        answers:
+          - "kubectl scale"
+          - "kubectl scale --replicas"
+      - prompt: "Which command watches a rolling update until it completes?"
+        answers:
+          - "kubectl rollout status"
+      - prompt: "Which command rolls a deployment back to its previous revision?"
+        answers:
+          - "kubectl rollout undo"
+      - prompt: "Which command lists replicasets, the layer between deployment and pods?"
+        answers:
+          - "kubectl get rs"
+          - "kubectl get replicasets"
+      - prompt: "Which command updates a container image and triggers a rolling update?"
+        answers:
+          - "kubectl set image"
+      - prompt: "A deployment manages a replicaset, and a replicaset manages what? One word."
+        answers:
+          - "pods"
+          - "pod"
+          - "the pods"
 
   - type: recall
     prompt: "Create a deployment named web from the nginx image."
@@ -99,5 +119,5 @@ encounters:
       Create a deployment named web from the nginx image with 3 replicas, in one
       command. This solve is dry-run verified end to end: kubectl validates it
       with no cluster and shows you the generated deployment manifest.
-    hint: "kubectl create deployment web --image=nginx --replicas=3"
+    hint: "kubectl create deployment <name> --image=<image> --replicas=<n>"
     key: "kubectl create deployment replicas"

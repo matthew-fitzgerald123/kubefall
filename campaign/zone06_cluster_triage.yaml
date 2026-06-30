@@ -50,13 +50,37 @@ encounters:
         desc: "step 5: the config the app reads, often the root cause"
       - command: "kubectl describe deployment"
         desc: "check the image tag and rollout the pod came from"
-    quiz:
-      prompt: "In the triage chain, which command comes first, before describe and before logs? Two words."
-      answers:
-        - "get pods"
-        - "kubectl get pods"
-        - "kubectl get po"
-        - "get po"
+    quizzes:
+      - prompt: "In the triage chain, which command comes first, before describe and before logs? Two words."
+        answers:
+          - "get pods"
+          - "kubectl get pods"
+          - "kubectl get po"
+          - "get po"
+      - prompt: "Which command reads the events of a single pod, step 2 in the triage chain?"
+        answers:
+          - "kubectl describe pod"
+          - "describe pod"
+      - prompt: "Which command shows the application's own error output from a pod?"
+        answers:
+          - "kubectl logs"
+          - "logs"
+      - prompt: "A pod has restarted and its current logs are empty. Which flag retrieves the crashed instance's logs?"
+        answers:
+          - "--previous"
+          - "-p"
+          - "kubectl logs --previous"
+      - prompt: "Which command shows the cluster-wide event trail for corroboration?"
+        answers:
+          - "kubectl get events"
+      - prompt: "The logs blame missing config. Which command lists configmaps to check?"
+        answers:
+          - "kubectl get cm"
+          - "kubectl get configmaps"
+      - prompt: "Which command checks the image tag and rollout history of a deployment?"
+        answers:
+          - "kubectl describe deployment"
+          - "kubectl describe deploy"
 
   - type: recall
     prompt: "Step 1. Get the state and restart count of all pods."
@@ -131,6 +155,6 @@ encounters:
       logs --previous because it restarted, then check the configmap and the image
       tag. This is honor-system: state the ordered chain, then confirm. The win
       condition is the correct order, not a created object.
-    hint: "get pods -> describe pod web -> logs web -> logs web --previous -> get configmap / describe deployment web"
+    hint: "get pods -> describe pod -> logs -> logs --previous -> get configmap -> describe deployment"
     fixture: "captures/get_pods_crashloop.txt"
     key: "triage chain"

@@ -44,7 +44,7 @@ _VALID_SOLVE_VERIFY = ("dry-run", "honor")
 
 # Per encounter type, the keys that must be present.
 _REQUIRED_ENCOUNTER_KEYS = {
-    "villager": ("name", "lore", "teaches", "quiz"),
+    "villager": ("name", "lore", "teaches", "quizzes"),
     "recall": ("prompt", "answers"),
     "solve": ("objective",),
 }
@@ -132,6 +132,11 @@ def _validate_encounter(encounter, source, index):
         for rune in teaches:
             if not isinstance(rune, dict) or "command" not in rune:
                 raise CampaignError("{}: each 'teaches' item needs a 'command'".format(where))
-        quiz = encounter["quiz"]
-        if not isinstance(quiz, dict) or "prompt" not in quiz or "answers" not in quiz:
-            raise CampaignError("{}: 'quiz' needs 'prompt' and 'answers'".format(where))
+        quizzes = encounter.get("quizzes")
+        if not isinstance(quizzes, list) or not quizzes:
+            raise CampaignError("{}: 'quizzes' must be a non-empty list".format(where))
+        for qi, q in enumerate(quizzes):
+            if not isinstance(q, dict) or "prompt" not in q or "answers" not in q:
+                raise CampaignError(
+                    "{}: quizzes[{}] needs 'prompt' and 'answers'".format(where, qi)
+                )

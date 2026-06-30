@@ -52,11 +52,36 @@ encounters:
         desc: "the port on the pod that traffic is forwarded to"
       - command: "kubectl port-forward"
         desc: "tunnel a local port to a service or pod"
-    quiz:
-      prompt: "Which service type is internal-only and is the default: ClusterIP, NodePort, or LoadBalancer?"
-      answers:
-        - "ClusterIP"
-        - "clusterip"
+    quizzes:
+      - prompt: "Which command creates a service in front of a deployment or pod?"
+        answers:
+          - "kubectl expose"
+      - prompt: "Which command lists services and their cluster IPs and ports?"
+        answers:
+          - "kubectl get svc"
+          - "kubectl get services"
+      - prompt: "Which service type is internal-only and is the default: ClusterIP, NodePort, or LoadBalancer?"
+        answers:
+          - "ClusterIP"
+          - "clusterip"
+          - "--type=ClusterIP"
+      - prompt: "Which service type opens a fixed port on every node?"
+        answers:
+          - "NodePort"
+          - "--type=NodePort"
+      - prompt: "Which service type requests an external address from the cloud provider?"
+        answers:
+          - "LoadBalancer"
+          - "--type=LoadBalancer"
+      - prompt: "Which flag sets the port the service itself listens on?"
+        answers:
+          - "--port"
+      - prompt: "Which flag sets the port on the pod that the service forwards traffic to?"
+        answers:
+          - "--target-port"
+      - prompt: "Which command tunnels a local port to a service or pod without exposing it?"
+        answers:
+          - "kubectl port-forward"
 
   - type: recall
     prompt: "List all services in the current namespace."
@@ -107,5 +132,5 @@ encounters:
       port 8080. This solve is dry-run verified: with a reachable cluster kubectl
       validates it and shows the service manifest, and with no cluster it falls
       back to honor-system self-report.
-    hint: "kubectl expose deployment web --port=80 --target-port=8080"
+    hint: "kubectl expose deployment <name> --port=<n> --target-port=<n>"
     key: "kubectl expose service"

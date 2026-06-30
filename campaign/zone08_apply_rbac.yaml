@@ -1,0 +1,140 @@
+# Zone 8: Apply, Patch, and RBAC.
+#
+# Day-2 operations and access control. Zones 1 through 7 taught you to create
+# and observe. This zone teaches the second mode: applying manifests from files,
+# patching live objects in place, labeling resources, and controlling who can
+# do what with roles and rolebindings. The boss is a dry-run-verified solve that
+# creates a service account, which kubectl validates fully offline.
+
+id: zone08_apply_rbac
+name: Apply, Patch, and RBAC
+path: cluster/rbac
+theme: Day-2 operations and access control. apply -f, patch, label, create role, rolebinding, auth can-i.
+commands:
+  - kubectl apply -f
+  - kubectl delete -f
+  - kubectl patch
+  - kubectl label
+  - kubectl create serviceaccount
+  - kubectl create role
+  - kubectl create rolebinding
+  - kubectl auth can-i
+
+encounters:
+  - type: villager
+    name: The Gatekeeper
+    lore: >-
+      A warden who decides what runs and who can touch it. "apply -f is how real
+      clusters are managed," she says. "You write a manifest, you apply it, and
+      kubectl creates or updates whatever it describes. patch lets you change one
+      field of a live object without rewriting the whole manifest. label marks a
+      resource so selectors can find it. Then there is access control: a Role
+      lists the permissions, a RoleBinding attaches that Role to a subject, and
+      auth can-i is the one command that tells you whether your permissions
+      actually work before you find out the hard way."
+    teaches:
+      - command: "kubectl apply -f"
+        desc: "create or update resources from a manifest file"
+      - command: "kubectl delete -f"
+        desc: "delete resources described in a manifest file"
+      - command: "kubectl patch"
+        desc: "surgically update a field of a live resource"
+      - command: "kubectl label"
+        desc: "add or change labels on a resource"
+      - command: "kubectl create serviceaccount"
+        desc: "create a service account for pod identity"
+      - command: "kubectl create role"
+        desc: "create a Role with specific permission rules"
+      - command: "kubectl create rolebinding"
+        desc: "bind a Role to a user, group, or service account"
+      - command: "kubectl auth can-i"
+        desc: "check if the current user can perform an action"
+    quizzes:
+      - prompt: "Which command creates or updates resources from a manifest file?"
+        answers:
+          - "kubectl apply -f"
+          - "apply -f"
+      - prompt: "Which command deletes resources described in a manifest file?"
+        answers:
+          - "kubectl delete -f"
+          - "delete -f"
+      - prompt: "Which verb surgically updates a single field of a live resource without reapplying the full manifest?"
+        answers:
+          - "patch"
+          - "kubectl patch"
+      - prompt: "Which command adds or changes labels on a resource?"
+        answers:
+          - "kubectl label"
+      - prompt: "Which command creates a service account for pod identity?"
+        answers:
+          - "kubectl create serviceaccount"
+          - "kubectl create sa"
+      - prompt: "Which command creates a Role granting specific API permissions?"
+        answers:
+          - "kubectl create role"
+      - prompt: "Which command binds a Role to a user, group, or service account?"
+        answers:
+          - "kubectl create rolebinding"
+      - prompt: "Which command checks whether the current user can perform a specific action?"
+        answers:
+          - "kubectl auth can-i"
+
+  - type: recall
+    prompt: "Apply the manifest at deploy.yaml to the cluster."
+    answers:
+      - "kubectl apply -f deploy.yaml"
+    time_limit: 8
+
+  - type: recall
+    prompt: "Delete all resources described in deploy.yaml."
+    answers:
+      - "kubectl delete -f deploy.yaml"
+    time_limit: 8
+
+  - type: recall
+    prompt: "Which verb surgically updates a field of a live resource without reapplying the full manifest?"
+    answers:
+      - "patch"
+      - "kubectl patch"
+    time_limit: 8
+
+  - type: recall
+    prompt: "Add the label env=prod to the pod named web."
+    answers:
+      - "kubectl label pod web env=prod"
+    time_limit: 9
+
+  - type: recall
+    prompt: "Create a service account named deployer."
+    answers:
+      - "kubectl create serviceaccount deployer"
+      - "kubectl create sa deployer"
+    time_limit: 9
+
+  - type: recall
+    prompt: "Which command creates a Role granting specific API permissions?"
+    answers:
+      - "kubectl create role"
+    time_limit: 8
+
+  - type: recall
+    prompt: "Which command binds a Role to a user or service account?"
+    answers:
+      - "kubectl create rolebinding"
+    time_limit: 9
+
+  - type: recall
+    prompt: "Check if the current user can list pods in the current namespace."
+    answers:
+      - "kubectl auth can-i list pods"
+    time_limit: 8
+
+  - type: solve
+    name: Access Denied
+    verify: dry-run
+    objective: >-
+      Create a service account named deployer using kubectl create serviceaccount.
+      This is dry-run verified: kubectl validates it offline and shows the
+      serviceaccount manifest it would create.
+    hint: "kubectl create serviceaccount <name>"
+    key: "kubectl create serviceaccount"

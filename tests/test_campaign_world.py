@@ -21,14 +21,17 @@ from kubefall import campaign, world
 
 CAMPAIGN_DIR = os.path.join(ROOT, "campaign")
 
-_CREATION_ZONES = {"zone01_pods", "zone02_deployments", "zone03_services", "zone04_config"}
+_CREATION_ZONES = {
+    "zone01_pods", "zone02_deployments", "zone03_services", "zone04_config",
+    "zone07_namespaces", "zone08_apply_rbac",
+}
 _DEBUG_ZONES = {"zone05_debugging", "zone06_cluster_triage"}
 
 
 class CampaignLoadTests(unittest.TestCase):
-    def test_all_six_zone_files_load_and_validate(self):
+    def test_all_zone_files_load_and_validate(self):
         files = sorted(glob.glob(os.path.join(CAMPAIGN_DIR, "zone*.yaml")))
-        self.assertEqual(len(files), 6, "expected zones 1 through 6")
+        self.assertEqual(len(files), 8, "expected zones 1 through 8")
         for path in files:
             zone = campaign.load_zone_file(path)  # raises CampaignError if bad
             self.assertTrue(zone.id)
@@ -40,7 +43,7 @@ class CampaignLoadTests(unittest.TestCase):
         ids = [z.id for z in zones]
         self.assertEqual(ids, sorted(ids))
         self.assertEqual(ids[0], "zone01_pods")
-        self.assertEqual(ids[-1], "zone06_cluster_triage")
+        self.assertEqual(ids[-1], "zone08_apply_rbac")
 
     def test_every_zone_has_villager_recall_and_solve(self):
         for zone in campaign.load_campaign(CAMPAIGN_DIR):
