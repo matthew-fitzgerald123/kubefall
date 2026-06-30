@@ -447,22 +447,36 @@ class Screen:
 
         if correct:
             lines.append(self._colored("  Correct!", fg=46, bold=True))
+            self._draw_panel(
+                zone_id=zone_id,
+                sprite_key="villager",
+                header_left=encounter["name"],
+                header_right=progress,
+                hp=0,
+                max_hp=0,
+                content_lines=lines,
+                await_input=False,
+            )
+            time.sleep(0.8)
         else:
             lines.append(self._colored("  Not quite.", fg=196, bold=True))
-            answer_line = "  Answer: {}".format(quiz_item["answers"][0])
-            lines.append(self._colored(answer_line, fg=zone_dim))
-
-        self._draw_panel(
-            zone_id=zone_id,
-            sprite_key="villager",
-            header_left=encounter["name"],
-            header_right=progress,
-            hp=0,
-            max_hp=0,
-            content_lines=lines,
-            await_input=False,
-        )
-        time.sleep(0.8)
+            lines.append(self._colored("  Answer: {}".format(quiz_item["answers"][0]), fg=zone_dim))
+            lines.append("")
+            lines.append(self._colored("  Press Enter to continue...", fg=zone_dim))
+            self._draw_panel(
+                zone_id=zone_id,
+                sprite_key="villager",
+                header_left=encounter["name"],
+                header_right=progress,
+                hp=0,
+                max_hp=0,
+                content_lines=lines,
+                await_input=False,
+            )
+            try:
+                input("")
+            except EOFError:
+                pass
 
     # ------------------------------------------------------------------
     # Battle prompt
@@ -519,28 +533,37 @@ class Screen:
 
         if correct:
             lines.append(self._colored("  Hit!", fg=46, bold=True))
-        elif timed_out:
-            lines.append(self._colored("  Too slow!", fg=196, bold=True))
-            lines.append(self._colored(
-                "  The command was: {}".format(shown_answer), fg=zone_dim
-            ))
+            self._draw_panel(
+                zone_id=zone_id,
+                sprite_key="enemy",
+                header_left=art.get_enemy(zone_id)["name"],
+                header_right="BATTLE",
+                hp=hp,
+                max_hp=max_hp,
+                content_lines=lines,
+                await_input=False,
+            )
+            time.sleep(1.2)
         else:
-            lines.append(self._colored("  Miss.", fg=196, bold=True))
-            lines.append(self._colored(
-                "  The command was: {}".format(shown_answer), fg=zone_dim
-            ))
-
-        self._draw_panel(
-            zone_id=zone_id,
-            sprite_key="enemy",
-            header_left=art.get_enemy(zone_id)["name"],
-            header_right="BATTLE",
-            hp=hp,
-            max_hp=max_hp,
-            content_lines=lines,
-            await_input=False,
-        )
-        time.sleep(1.2)
+            label = "  Too slow!" if timed_out else "  Miss."
+            lines.append(self._colored(label, fg=196, bold=True))
+            lines.append(self._colored("  The command was: {}".format(shown_answer), fg=zone_dim))
+            lines.append("")
+            lines.append(self._colored("  Press Enter to continue...", fg=zone_dim))
+            self._draw_panel(
+                zone_id=zone_id,
+                sprite_key="enemy",
+                header_left=art.get_enemy(zone_id)["name"],
+                header_right="BATTLE",
+                hp=hp,
+                max_hp=max_hp,
+                content_lines=lines,
+                await_input=False,
+            )
+            try:
+                input("")
+            except EOFError:
+                pass
 
     # ------------------------------------------------------------------
     # Solve prompt
