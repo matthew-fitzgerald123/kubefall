@@ -36,7 +36,7 @@ def _sprite(name, primary, accents, *lines):
 
 
 # ---------------------------------------------------------------------------
-# Zone 01  Pods  (zone_color=51  zone_dim=237)
+# Zone 01  Pods  (zone_color=51  zone_dim=244)
 # ---------------------------------------------------------------------------
 
 _z01_villager = _sprite(
@@ -78,7 +78,7 @@ _z01_enemy = _sprite(
 )
 
 # ---------------------------------------------------------------------------
-# Zone 02  Deployments  (zone_color=33  zone_dim=237)
+# Zone 02  Deployments  (zone_color=33  zone_dim=244)
 # ---------------------------------------------------------------------------
 
 _z02_villager = _sprite(
@@ -120,7 +120,7 @@ _z02_enemy = _sprite(
 )
 
 # ---------------------------------------------------------------------------
-# Zone 03  Services  (zone_color=46  zone_dim=237)
+# Zone 03  Services  (zone_color=46  zone_dim=244)
 # ---------------------------------------------------------------------------
 
 _z03_villager = _sprite(
@@ -162,7 +162,7 @@ _z03_enemy = _sprite(
 )
 
 # ---------------------------------------------------------------------------
-# Zone 04  Config  (zone_color=226  zone_dim=237)
+# Zone 04  Config  (zone_color=226  zone_dim=244)
 # ---------------------------------------------------------------------------
 
 _z04_villager = _sprite(
@@ -204,7 +204,7 @@ _z04_enemy = _sprite(
 )
 
 # ---------------------------------------------------------------------------
-# Zone 05  Debugging  (zone_color=208  zone_dim=237)
+# Zone 05  Debugging  (zone_color=208  zone_dim=244)
 # ---------------------------------------------------------------------------
 
 _z05_villager = _sprite(
@@ -246,7 +246,7 @@ _z05_enemy = _sprite(
 )
 
 # ---------------------------------------------------------------------------
-# Zone 06  Cluster Triage  (zone_color=196  zone_dim=237)
+# Zone 06  Cluster Triage  (zone_color=196  zone_dim=244)
 # ---------------------------------------------------------------------------
 
 _z06_villager = _sprite(
@@ -288,7 +288,7 @@ _z06_enemy = _sprite(
 )
 
 # ---------------------------------------------------------------------------
-# Zone 07  Namespaces  (zone_color=135  zone_dim=237)
+# Zone 07  Namespaces  (zone_color=135  zone_dim=244)
 # ---------------------------------------------------------------------------
 
 _z07_villager = _sprite(
@@ -330,7 +330,7 @@ _z07_enemy = _sprite(
 )
 
 # ---------------------------------------------------------------------------
-# Zone 08  Apply & RBAC  (zone_color=220  zone_dim=237)
+# Zone 08  Apply & RBAC  (zone_color=220  zone_dim=244)
 # ---------------------------------------------------------------------------
 
 _z08_villager = _sprite(
@@ -378,49 +378,49 @@ _z08_enemy = _sprite(
 SPRITES = {
     "zone01_pods": {
         "zone_color": 51,
-        "zone_dim": 237,
+        "zone_dim": 244,
         "villager": _z01_villager,
         "enemy": _z01_enemy,
     },
     "zone02_deployments": {
         "zone_color": 33,
-        "zone_dim": 237,
+        "zone_dim": 244,
         "villager": _z02_villager,
         "enemy": _z02_enemy,
     },
     "zone03_services": {
         "zone_color": 46,
-        "zone_dim": 237,
+        "zone_dim": 244,
         "villager": _z03_villager,
         "enemy": _z03_enemy,
     },
     "zone04_config": {
         "zone_color": 226,
-        "zone_dim": 237,
+        "zone_dim": 244,
         "villager": _z04_villager,
         "enemy": _z04_enemy,
     },
     "zone05_debugging": {
         "zone_color": 208,
-        "zone_dim": 237,
+        "zone_dim": 244,
         "villager": _z05_villager,
         "enemy": _z05_enemy,
     },
     "zone06_cluster_triage": {
         "zone_color": 196,
-        "zone_dim": 237,
+        "zone_dim": 244,
         "villager": _z06_villager,
         "enemy": _z06_enemy,
     },
     "zone07_namespaces": {
         "zone_color": 135,
-        "zone_dim": 237,
+        "zone_dim": 244,
         "villager": _z07_villager,
         "enemy": _z07_enemy,
     },
     "zone08_apply_rbac": {
         "zone_color": 220,
-        "zone_dim": 237,
+        "zone_dim": 244,
         "villager": _z08_villager,
         "enemy": _z08_enemy,
     },

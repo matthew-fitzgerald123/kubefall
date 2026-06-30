@@ -165,7 +165,16 @@ _pending_drain = False
 
 
 def _drain_stdin(timeout=0.0):
-    """Discard any data waiting in stdin."""
+    """Discard any data waiting in stdin, including partial lines not yet Enter-submitted."""
+    # termios.TCIFLUSH empties the kernel's input buffer immediately, catching
+    # partial lines that select() cannot see in canonical mode.
+    try:
+        import termios
+        termios.tcflush(sys.stdin.fileno(), termios.TCIFLUSH)
+        return
+    except Exception:
+        pass
+    # Fallback for non-tty stdin (pipes, test harnesses): drain complete lines.
     try:
         while True:
             ready, _, _ = select.select([sys.stdin], [], [], timeout)
@@ -198,9 +207,10 @@ def _read_timed(time_limit):
         return (None, elapsed, False) if line == "" else (line.strip(), elapsed, False)
 
     if ready:
-        line = sys.stdin.readline()
         elapsed = time.time() - start
-        if line == "":
+        try:
+            line = input("")   # input() activates readline: arrow keys, backspace, etc.
+        except EOFError:
             return None, elapsed, True
         return line.strip(), elapsed, False
 
@@ -311,6 +321,7 @@ def _solve_honor(scheduler, encounter, world_root, miss_damage,
             screen.solve_result(zone_id, encounter, hp, max_hp, False)
         else:
             print("  The gate holds. Regroup and walk the chain again.")
+        _reset_input()
 
 
 def _solve_dry_run(scheduler, encounter, miss_damage,
@@ -394,6 +405,7 @@ def _solve_dry_run(scheduler, encounter, miss_damage,
                 print("  kubectl rejected it:")
                 print(_indent(output or "(no error output)"))
                 print("  Try again.")
+        _reset_input()
 
 
 def _kubectl_verb(command):
@@ -553,6 +565,7 @@ def villager_battle(scheduler, encounter, compressed=False, miss_damage=1,
                                             idx, len(quizzes), correct=False)
             else:
                 print("  Not quite. The villager waits.")
+            _reset_input()
 
     for rune in encounter.get("teaches", []):
         scheduler.seed(rune["command"], rune.get("desc", ""), rune["command"])
@@ -567,6 +580,15 @@ def _prompt(text):
         return input(text)
     except EOFError:
         return ""
+
+
+def _reset_input():
+    """Clear readline history so the previous wrong answer doesn't reappear on UP arrow."""
+    try:
+        import readline
+        readline.clear_history()
+    except (ImportError, AttributeError):
+        pass
 
 
 def _yes_no(question, default=True):

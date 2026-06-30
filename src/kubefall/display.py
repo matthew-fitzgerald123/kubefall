@@ -73,7 +73,7 @@ class Screen:
 
         bar = (
             self._c(46) + "█" * filled
-            + self._c(238) + "░" * empty
+            + self._c(244) + "░" * empty
             + self._reset()
         )
         return "HP {} {}/{}".format(bar, max(0, hp), max_hp)
@@ -742,7 +742,7 @@ class Screen:
             rows.append(row(al, color=zone_color, bold=True, center=True))
         rows.append(row("", color=zone_color))
         rows.append(row("  A descent through the cluster. The map is the namespace.",
-                        color=237, center=True))
+                        color=244, center=True))
         rows.append(sep)
         rows.append(row(
             "  Starting at cluster root    Zones cleared: {}    Commands tracked: {}".format(
@@ -864,7 +864,7 @@ class Screen:
         ))
         rows.append(row(
             "  Mastered commands stay buried. Run again: only gaps remain.",
-            c=237, center=True,
+            c=244, center=True,
         ))
         rows.append(bot)
 
