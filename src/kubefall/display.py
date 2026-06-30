@@ -25,6 +25,31 @@ import time
 from . import art
 
 
+def _flush_and_dismiss():
+    """Flush the kernel input buffer then block until the player presses Enter.
+
+    Flushing before the input() call ensures that any keys the player pressed
+    while reading the result panel (between submitting the wrong answer and the
+    dismiss prompt appearing) don't contaminate the dismiss or the next question.
+    readline history is also cleared so UP arrow at the next prompt won't show
+    the previous wrong answer.
+    """
+    try:
+        import termios
+        termios.tcflush(sys.stdin.fileno(), termios.TCIFLUSH)
+    except Exception:
+        pass
+    try:
+        import readline
+        readline.clear_history()
+    except Exception:
+        pass
+    try:
+        input("")
+    except EOFError:
+        pass
+
+
 class Screen:
 
     # ------------------------------------------------------------------
@@ -473,10 +498,7 @@ class Screen:
                 content_lines=lines,
                 await_input=False,
             )
-            try:
-                input("")
-            except EOFError:
-                pass
+            _flush_and_dismiss()
 
     # ------------------------------------------------------------------
     # Battle prompt
@@ -560,10 +582,7 @@ class Screen:
                 content_lines=lines,
                 await_input=False,
             )
-            try:
-                input("")
-            except EOFError:
-                pass
+            _flush_and_dismiss()
 
     # ------------------------------------------------------------------
     # Solve prompt
@@ -720,10 +739,7 @@ class Screen:
         )
 
         if correct:
-            try:
-                input("")
-            except EOFError:
-                pass
+            _flush_and_dismiss()
         else:
             time.sleep(1.0)
 

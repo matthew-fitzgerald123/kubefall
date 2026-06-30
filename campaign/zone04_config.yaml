@@ -50,16 +50,16 @@ encounters:
         answers:
           - "kubectl create configmap"
           - "kubectl create cm"
-      - prompt: "Which object holds sensitive values and is base64 encoded, a configmap or a secret?"
+      - prompt: "Which object holds sensitive values and stores them base64 encoded?"
         answers:
           - "secret"
           - "a secret"
           - "secrets"
           - "kubectl create secret"
-      - prompt: "Which flag sets a key=value pair inline when creating a configmap or secret?"
+      - prompt: "Which flag sets a key=value pair directly on the command line?"
         answers:
           - "--from-literal"
-      - prompt: "Which flag loads configuration from a file when creating a configmap or secret?"
+      - prompt: "Which flag loads configuration values from a file on disk?"
         answers:
           - "--from-file"
       - prompt: "Which command lists configmaps in the current namespace?"

@@ -50,7 +50,7 @@ encounters:
       - command: "kubectl auth can-i"
         desc: "check if the current user can perform an action"
     quizzes:
-      - prompt: "Which command creates or updates resources from a manifest file?"
+      - prompt: "Which command applies a manifest file to bring resources into the desired state?"
         answers:
           - "kubectl apply -f"
           - "apply -f"
@@ -62,7 +62,7 @@ encounters:
         answers:
           - "patch"
           - "kubectl patch"
-      - prompt: "Which command adds or changes labels on a resource?"
+      - prompt: "Which command sets labels on a live resource?"
         answers:
           - "kubectl label"
       - prompt: "Which command creates a service account for pod identity?"
@@ -72,7 +72,7 @@ encounters:
       - prompt: "Which command creates a Role granting specific API permissions?"
         answers:
           - "kubectl create role"
-      - prompt: "Which command binds a Role to a user, group, or service account?"
+      - prompt: "Which command creates a RoleBinding to grant a Role to a subject?"
         answers:
           - "kubectl create rolebinding"
       - prompt: "Which command checks whether the current user can perform a specific action?"
@@ -118,7 +118,7 @@ encounters:
     time_limit: 8
 
   - type: recall
-    prompt: "Which command binds a Role to a user or service account?"
+    prompt: "Which command grants a Role to a subject in the cluster?"
     answers:
       - "kubectl create rolebinding"
     time_limit: 9

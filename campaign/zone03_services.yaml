@@ -53,14 +53,14 @@ encounters:
       - command: "kubectl port-forward"
         desc: "tunnel a local port to a service or pod"
     quizzes:
-      - prompt: "Which command creates a service in front of a deployment or pod?"
+      - prompt: "Which command creates a stable network service in front of a workload?"
         answers:
           - "kubectl expose"
       - prompt: "Which command lists services and their cluster IPs and ports?"
         answers:
           - "kubectl get svc"
           - "kubectl get services"
-      - prompt: "Which service type is internal-only and is the default: ClusterIP, NodePort, or LoadBalancer?"
+      - prompt: "Which service type is internal-only and is the default?"
         answers:
           - "ClusterIP"
           - "clusterip"
@@ -79,7 +79,7 @@ encounters:
       - prompt: "Which flag sets the port on the pod that the service forwards traffic to?"
         answers:
           - "--target-port"
-      - prompt: "Which command tunnels a local port to a service or pod without exposing it?"
+      - prompt: "Which command gives local access to a workload without creating a public endpoint?"
         answers:
           - "kubectl port-forward"
 

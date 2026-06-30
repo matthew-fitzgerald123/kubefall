@@ -56,7 +56,7 @@ encounters:
         answers:
           - "kubectl get pods"
           - "kubectl get po"
-      - prompt: "Which verb shows the full detail and events of a single pod, get or describe?"
+      - prompt: "Which verb shows the full detail and events of a single pod?"
         answers:
           - "describe"
           - "kubectl describe"

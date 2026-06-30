@@ -258,6 +258,9 @@ def recall_battle(scheduler, encounter, miss_damage=3,
     if screen:
         screen.battle_result(zone_id, encounter, hp, max_hp,
                              correct, timed_out, accepted[0])
+        if not correct:
+            _drain_stdin()
+            _reset_input()
     else:
         if correct:
             print("  Hit. {:.1f}s.".format(elapsed))
@@ -574,6 +577,7 @@ def villager_battle(scheduler, encounter, compressed=False, miss_damage=1,
             if screen:
                 screen.villager_quiz_result(zone_id, encounter, quiz_item,
                                             idx, len(quizzes), correct=False)
+                _drain_stdin()
             else:
                 print("  Not quite. The villager waits.")
             _reset_input()
