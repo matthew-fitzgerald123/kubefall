@@ -129,8 +129,12 @@ encounters:
     verify: dry-run
     objective: >-
       Expose the deployment named web as a service on port 80 forwarding to pod
-      port 8080. This solve is dry-run verified: with a reachable cluster kubectl
-      validates it and shows the service manifest, and with no cluster it falls
-      back to honor-system self-report.
+      port 8080. With a live cluster kubectl validates it and shows the service
+      manifest. Without a cluster the command is verified by string match.
     hint: "kubectl expose deployment <name> --port=<n> --target-port=<n>"
     key: "kubectl expose service"
+    answers:
+      - "kubectl expose deployment web --port=80 --target-port=8080"
+      - "kubectl expose deployment web --port 80 --target-port 8080"
+      - "kubectl expose deployment web --port=80 --target-port 8080"
+      - "kubectl expose deployment web --port 80 --target-port=8080"

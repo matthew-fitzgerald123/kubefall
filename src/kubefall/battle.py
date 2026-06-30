@@ -381,23 +381,41 @@ def _solve_dry_run(scheduler, encounter, miss_damage,
                 screen.solve_result(zone_id, encounter, hp, max_hp, True, output)
             return {"correct": True, "damage": miss_damage if penalty_dealt else 0}
 
+        if status == "unverifiable":
+            accepted = encounter.get("answers")
+            if accepted and matches(command, accepted):
+                scheduler.record(key, True, 0.0, 0)
+                details = "  No cluster available -- verified by string match.\n  Command accepted."
+                if screen:
+                    screen.solve_result(zone_id, encounter, hp, max_hp, True, details)
+                else:
+                    print(details)
+                return {"correct": True, "damage": miss_damage if penalty_dealt else 0}
+            if not accepted:
+                return _report_fallback(scheduler, key, miss_damage,
+                                        screen=screen, zone_id=zone_id,
+                                        encounter=encounter, hp=hp, max_hp=max_hp)
+            # has answers but didn't match -- treat as wrong
+            err_msg = "  That's not quite right. Check the command and flags."
+        else:
+            err_msg = None
+
         if not penalty_dealt:
             penalty_dealt = True
         scheduler.record(key, False, 0.0, 0)
 
-        if status == "unverifiable":
-            # kubectl needs a live API server -- this command cannot be validated offline.
-            # Fall back to honor-system so the player is not stuck.
-            return _report_fallback(scheduler, key, miss_damage,
-                                    screen=screen, zone_id=zone_id,
-                                    encounter=encounter, hp=hp, max_hp=max_hp)
-
-        if screen:
-            screen.solve_result(zone_id, encounter, hp, max_hp, False, output)
+        if err_msg:
+            if screen:
+                screen.solve_result(zone_id, encounter, hp, max_hp, False, err_msg)
+            else:
+                print(err_msg)
         else:
-            print("  kubectl rejected it:")
-            print(_indent(output or "(no error output)"))
-            print("  Try again.")
+            if screen:
+                screen.solve_result(zone_id, encounter, hp, max_hp, False, output)
+            else:
+                print("  kubectl rejected it:")
+                print(_indent(output or "(no error output)"))
+                print("  Try again.")
         _reset_input()
 
 
