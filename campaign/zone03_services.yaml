@@ -94,35 +94,35 @@ encounters:
     answers:
       - "kubectl expose deployment web --port=80 --target-port=8080"
       - "kubectl expose deployment web --port 80 --target-port 8080"
-    time_limit: 11
+    time_limit: 17
 
   - type: recall
     prompt: "Expose deployment web on port 80 as a NodePort service."
     answers:
       - "kubectl expose deployment web --port=80 --type=NodePort"
       - "kubectl expose deployment web --port 80 --type NodePort"
-    time_limit: 11
+    time_limit: 16
 
   - type: recall
     prompt: "Expose deployment web on port 80 as a LoadBalancer service."
     answers:
       - "kubectl expose deployment web --port=80 --type=LoadBalancer"
       - "kubectl expose deployment web --port 80 --type LoadBalancer"
-    time_limit: 11
+    time_limit: 17
 
   - type: recall
     prompt: "Forward local port 8080 to port 80 of the service named web."
     answers:
       - "kubectl port-forward service/web 8080:80"
       - "kubectl port-forward svc/web 8080:80"
-    time_limit: 10
+    time_limit: 13
 
   - type: recall
     prompt: "Forward local port 8080 to port 80 of the pod named web."
     answers:
       - "kubectl port-forward pod/web 8080:80"
       - "kubectl port-forward web 8080:80"
-    time_limit: 9
+    time_limit: 12
 
   - type: solve
     name: The Front Door

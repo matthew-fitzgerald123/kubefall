@@ -76,28 +76,28 @@ encounters:
     answers:
       - "kubectl create deployment web --image=nginx"
       - "kubectl create deployment web --image nginx"
-    time_limit: 9
+    time_limit: 13
 
   - type: recall
     prompt: "Scale the deployment named web to 3 replicas."
     answers:
       - "kubectl scale deployment web --replicas=3"
       - "kubectl scale deployment web --replicas 3"
-    time_limit: 9
+    time_limit: 12
 
   - type: recall
     prompt: "Watch the rolling update of deployment web until it lands."
     answers:
       - "kubectl rollout status deployment web"
       - "kubectl rollout status deployment/web"
-    time_limit: 8
+    time_limit: 11
 
   - type: recall
     prompt: "Roll the deployment web back to its previous revision."
     answers:
       - "kubectl rollout undo deployment web"
       - "kubectl rollout undo deployment/web"
-    time_limit: 8
+    time_limit: 10
 
   - type: recall
     prompt: "List the replicasets in the current namespace."
@@ -110,7 +110,7 @@ encounters:
     answers:
       - "kubectl set image deployment/web web=nginx:1.25"
       - "kubectl set image deployment web web=nginx:1.25"
-    time_limit: 10
+    time_limit: 14
 
   - type: solve
     name: Three Replicas

@@ -112,7 +112,7 @@ encounters:
     answers:
       - "kubectl config set-context --current --namespace=staging"
       - "kubectl config set-context --current --namespace staging"
-    time_limit: 11
+    time_limit: 16
 
   - type: solve
     name: The Right Context

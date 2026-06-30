@@ -81,20 +81,20 @@ encounters:
     prompt: "Create a configmap named web-config with key COLOR set to blue, inline."
     answers:
       - "kubectl create configmap web-config --from-literal=COLOR=blue"
-    time_limit: 11
+    time_limit: 18
 
   - type: recall
     prompt: "Create a configmap named web-config from the file app.properties."
     answers:
       - "kubectl create configmap web-config --from-file=app.properties"
       - "kubectl create configmap web-config --from-file app.properties"
-    time_limit: 11
+    time_limit: 18
 
   - type: recall
     prompt: "Create a generic secret named web-secret with key TOKEN set to abc123, inline."
     answers:
       - "kubectl create secret generic web-secret --from-literal=TOKEN=abc123"
-    time_limit: 12
+    time_limit: 20
 
   - type: recall
     prompt: "List all configmaps in the current namespace."
@@ -115,7 +115,7 @@ encounters:
     answers:
       - "kubectl get configmap web-config -o yaml"
       - "kubectl get cm web-config -o yaml"
-    time_limit: 9
+    time_limit: 12
 
   - type: solve
     name: First Config
